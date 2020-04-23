@@ -25,11 +25,12 @@
       <div class="post-list content">
 
       <h3>Blog</h3>
-         [- foreach x in global.posts -]
+       [- foreach x in .post -]
         <li>
-          <a href="[- x.relLink -]">[- x.title -]</a>
+          <a href="">[- x.title -]</a>
           <span class="date"> - [- x.date -]</span>
         </li>
+       [- end -]
       </div>
     </div>
 

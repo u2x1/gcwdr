@@ -3,7 +3,6 @@ module Template.Parser where
 
 import Data.Attoparsec.ByteString
 import Template.Type
-import Markdown.Type
 import Markdown.Parser
 import Markdown.Convert
 import Control.Applicative
@@ -20,21 +19,21 @@ post = do
   return $ ObjNode (meta <> M.singleton "content" (ObjLeaf $ convertMD postContent))
 
 stmt :: Parser Stmt
-stmt = stmt' <|> raw
+stmt = foreachStmt <|> stmt' <|> raw
 
 stmt' :: Parser Stmt
 stmt' = do
   _ <- string "[-" *> many (word8 32)
   s <- pack <$> manyTill anyWord8 (string "-]")
-  case parseOnly (partialsStmt <|> dotStmt <|> foreachStmt) s of
+  case parseOnly (partialsStmt  <|> dotStmt) s of
     Left _ -> fail "Parse statement failed."
     Right x -> return x
 
 dotStmt :: Parser Stmt
 dotStmt = do
-  obj <- takeTill (== 46)
-  member <- some (word8 46 *> takeTill (\w -> w == 46 || w == 32))
-  return (DotStmt obj member)
+  obj <- takeTill (\w -> w == 46 || w == 32)
+  mem <- some (word8 46 *> takeTill (\w -> w == 46 || w == 32))
+  return (DotStmt obj mem)
 
 partialsStmt :: Parser Stmt
 partialsStmt = do
@@ -44,10 +43,10 @@ partialsStmt = do
 
 foreachStmt :: Parser Stmt
 foreachStmt = do
-  _ <- string "foreach" *> many (word8 32)
+  _ <- string "[- foreach" *> many (word8 32)
   placeholder <- takeTill (==32)
   _ <- many (word8 32) *> string "in" *> many (word8 32)
-  obj <- dotStmt <* many (word8 32)
+  obj <- dotStmt <* many (word8 32) <* string "-]"
   inSpaceStmt <- manyTill stmt (string "[- end -]")
   return (ForeachStmt placeholder obj inSpaceStmt)
 

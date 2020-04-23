@@ -1,16 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Entry.Read where
 
-import Data.ByteString as BS (ByteString, readFile, putStrLn)
+import Data.ByteString as BS (readFile, putStrLn, ByteString)
 import System.Directory
 import Data.List (isPrefixOf, isSuffixOf)
-import Data.Map.Lazy ((!), Map)
+import Data.Map.Lazy as M ((!), singleton)
 import Template.Convert
 import Template.Type
-import Template.Parser (post)
 import Data.Maybe
 import Data.ByteString.UTF8 (toString)
-import System.IO
 import Control.Monad (filterM)
 
 getAllFiles :: FilePath ->  IO [FilePath]
@@ -25,23 +23,20 @@ getAllFiles path' = do
 
 trans :: IO ()
 trans = do
-  contentFiles <- filter ("./content/" `isPrefixOf`) <$> getAllFiles "."
-  themeFiles <- filter ("./theme/" `isPrefixOf`) <$> getAllFiles "."
-  let postMdFiles = filter (\p -> "./content/post/" `isPrefixOf` p && ".md" `isSuffixOf` p) contentFiles
-      layoutFiles = filter (\p -> "./theme/layout/" `isPrefixOf` p && ".html" `isSuffixOf` p) themeFiles
+  contentFiles <- filter ("./test-data/content/" `isPrefixOf`) <$> getAllFiles "."
+  let postMdFiles = filter (\p -> "./test-data/content/post/" `isPrefixOf` p && ".md" `isSuffixOf` p) contentFiles
   postObjs <- catMaybes <$> traverse parsePost postMdFiles
   tps <- traverse (\x -> convertTP x <$> BS.readFile (fromJust $ getLayoutFile x)) postObjs
-  traverse BS.putStrLn tps
+  tps <- (\x -> convertTP x <$> BS.readFile "./test-data/theme/layout/index.html") (addLayer "post" $ ObjListNode $ (\(ObjNode x) -> x) <$> postObjs)
+  BS.putStrLn tps
   return ()
+
+addLayer :: ByteString -> ObjectTree -> ObjectTree
+addLayer str ot = ObjNode $ M.singleton str ot
 
 getLayoutFile :: ObjectTree -> Maybe FilePath
 getLayoutFile x = case x of
                     ObjNode node -> case node ! "template" of
-                                      ObjLeaf y -> Just $ toString ("./theme/layout/" <> y <> ".html")
+                                      ObjLeaf y -> Just $ toString ("./test-data/theme/layout/" <> y <> ".html")
                                       _ -> Nothing
                     _ -> Nothing
-
-getFromObjTree :: ObjectTree -> Map ByteString ObjectTree
-getFromObjTree x = case x of
-                     ObjLeaf _ -> mempty
-                     ObjNode x' -> x'

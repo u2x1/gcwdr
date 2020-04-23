@@ -2,9 +2,8 @@
 module Template.Convert where
 
 import Template.Type
-import Data.Map.Lazy
+import Data.Map.Lazy as M
 import Data.ByteString as BS
-import System.IO (FilePath)
 import Data.Attoparsec.ByteString
 import Template.Parser
 import Data.Maybe
@@ -32,14 +31,37 @@ concatAndInit' x
   | otherwise = mconcat x
 
 convertTP' :: ObjectTree -> Stmt -> Maybe ByteString
-convertTP' (ObjLeaf _) _ = Nothing
 convertTP' _ (Raw rawHtml) = Just rawHtml
 convertTP' _ IfStmt = Nothing
-convertTP' (ObjNode objs) (DotStmt obj mems) =
+convertTP' objs s@ForeachStmt {} = convertForeach objs s
+convertTP' objs s@DotStmt {} = convertDot objs s
+convertTP' _ _ = Nothing
+
+convertForeach :: ObjectTree -> Stmt -> Maybe ByteString
+convertForeach (ObjNode objs) (ForeachStmt holder dotObj stmts) =
+  case convertDot2NodeList (ObjNode objs) dotObj of
+    Just nodeList -> mconcat.mconcat $ fmap (\node -> fmap (convertTP' (ObjNode $ M.singleton holder (ObjNode node))) stmts) nodeList
+    _ -> Nothing
+convertForeach _ _ = Nothing
+
+convertDot2NodeList :: ObjectTree -> Stmt -> Maybe [Map ByteString ObjectTree]
+convertDot2NodeList (ObjNode objs) (DotStmt obj mems) =
   let
-    run _ (ObjLeaf s) [] = Just s
-    run _ (ObjLeaf _) _ = Nothing
-    run objs' (ObjNode obj') (x:xs) = run objs' (obj' ! x) xs in
+    run _ (ObjListNode s) [] = Just s
+    run objs' (ObjNode obj') (x:xs) = run objs' (obj' ! x) xs
+    run _ _ _ = Nothing in
   if obj /= ""
      then run objs (objs ! obj) mems
      else run objs (ObjNode objs) mems
+convertDot2NodeList _ _ = Nothing
+
+convertDot :: ObjectTree -> Stmt -> Maybe ByteString
+convertDot (ObjNode objs) (DotStmt obj mems) =
+  let
+    run _ (ObjLeaf s) [] = Just s
+    run objs' (ObjNode obj') (x:xs) = run objs' (obj' ! x) xs
+    run _ _ _ = Nothing in
+  if obj /= ""
+     then run objs (objs ! obj) mems
+     else run objs (ObjNode objs) mems
+convertDot _ _ = Nothing
