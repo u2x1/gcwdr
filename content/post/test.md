@@ -1,7 +1,7 @@
 ---
-title: "Aeson Parsing Tips"
+title: Aeson Parsing Tips
 date: 2020-04-04T21:19:09+08:00
-categories: "Tech"
+categories: Tech
 ---
 ##### Array with Objects
 

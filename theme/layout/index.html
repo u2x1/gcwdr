@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/css/custom.css">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif&family=Source+Sans+Pro&display=swap" rel="stylesheet">
+    <title>Nutr1t07&#39;s Blog | Nutr1t07&#39;s Blog</title>
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="sidebar">
+            <nav>
+                <h3 id="logo">Nutr1t07</h3>
+                <ul>
+                    <li><a href="/">Index</a></li>
+                    <li><a href="/friends">Friends</a></li>
+                </ul>
+            </nav>
+            &nbsp;
+        </div>
+
+
+      <div class="post-list content">
+
+      <h3>Blog</h3>
+         [- foreach x in global.posts -]
+        <li>
+          <a href="[- x.relLink -]">[- x.title -]</a>
+          <span class="date"> - [- x.date -]</span>
+        </li>
+      </div>
+    </div>
+
+  </body>
+</html>

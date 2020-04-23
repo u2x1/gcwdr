@@ -11,13 +11,6 @@ import Data.Map.Lazy as M
 import Markdown.Type
 import Template.Type
 
-post :: Parser ObjectTree
-post = do
-  meta <- metaData
-  postContent <- takeByteString
-  return $ ObjNode (M.singleton "post" $
-    ObjNode (meta <> M.singleton "content" (ObjLeaf postContent)))
-
 metaData :: Parser (Map ByteString ObjectTree)
 metaData = do
   _ <- many (string "---\n")

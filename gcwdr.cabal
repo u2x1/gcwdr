@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 107981d8e4ed9f8c8384fe610b6c326760a5d398386db093dffe53379826d3e2
+-- hash: b71101d5d76875927bb9442c6ad48c64d9280d5e5d85ffa71fd5767d4f0d6f05
 
 name:           gcwdr
 version:        0.1.0.0
@@ -26,6 +26,7 @@ source-repository head
 
 library
   exposed-modules:
+      Entry.Read
       Markdown.Convert
       Markdown.Parser
       Markdown.Type
@@ -43,6 +44,7 @@ library
     , containers
     , directory
     , time
+    , utf8-string
     , word8
   default-language: Haskell2010
 
@@ -61,6 +63,7 @@ executable gcwdr-exe
     , directory
     , gcwdr
     , time
+    , utf8-string
     , word8
   default-language: Haskell2010
 
@@ -80,5 +83,6 @@ test-suite gcwdr-test
     , directory
     , gcwdr
     , time
+    , utf8-string
     , word8
   default-language: Haskell2010

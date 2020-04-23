@@ -6,7 +6,11 @@ import Data.Time.Clock
 
 type MapO x = Map ByteString x
 
-data Stmt = DotStmt ByteString [ByteString] | IfStmt | Raw ByteString
+data Stmt = DotStmt ByteString [ByteString]
+          | ForeachStmt ByteString Stmt [Stmt]
+          | PartialStmt ByteString
+          | IfStmt
+          | Raw ByteString
   deriving (Show)
 
 data ObjectTree = ObjNode (Map ByteString ObjectTree) | ObjLeaf ByteString

@@ -7,10 +7,11 @@ import Data.List (intersperse)
 import Markdown.Type
 import Markdown.Parser
 
-convertMD :: ByteString -> Maybe ByteString
+convertMD :: ByteString -> ByteString
 convertMD s = case parseOnly (many' mdElem) (s <> "\n") of
-                Right xs -> Just $ concatAndInit $ convertMD' <$> xs
-                _ -> Nothing
+                Right [] -> ""
+                Right xs -> concatAndInit $ convertMD' <$> xs
+                _ -> ""
 
 convertMD' :: MDElem -> ByteString
 convertMD' (Header1 x) = addElemTag' "h1" x
