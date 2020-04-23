@@ -1,0 +1,81 @@
+body {
+    padding-left: calc(100vw - 100%);
+}
+
+.sidebar{
+    float: left;
+    width: 160px;
+}
+
+.content {
+  float: left;
+  width: 740px;
+  font-family: 'Source Sans Pro';
+  padding-left: 60px;
+}
+
+.container {
+    padding-top: 40px;
+    margin: 0 auto;
+    width: 960px;
+}
+
+nav {
+    position: fixed;
+    width: 160px;
+}
+
+nav ul li a, nav ul li a:visited, nav ul li a:active{
+    text-decoration: none;
+    font-family: 'Source Sans Pro';
+    font-weight: Bold;
+}
+
+.post-list li {
+    list-style: none outside;
+    padding: 0;
+}
+
+nav ul {
+    list-style: none outside;
+}
+
+.sidebar ul { padding: 0; }
+
+a { color: #000 }
+
+/* Mobile */
+@media only screen and (max-width: 767px) {
+    .container {width: 300px; padding-top: 0;}
+    .content   {width: 300px; padding-left: 0;}
+    .sidebar { width: 300px; }
+
+    nav {
+      position: relative;
+      text-align: center;
+      margin: 0 auto;
+    }
+}
+
+pre {
+    margin: 10px;
+    margin-right: 25px;
+    overflow: auto;
+}
+
+pre > code {
+    display: block;
+    padding: 10px;
+    letter-spacing: 0.5px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "PT Serif", serif;
+}
+
+h1 { font-size: 46px; line-height: 50px; margin-bottom: 14px;}
+h2 { font-size: 35px; line-height: 40px; margin-bottom: 10px;}
+h3 { font-size: 28px; line-height: 34px; margin-bottom: 8px; }
+h4 { font-size: 21px; line-height: 30px; margin-bottom: 4px; }
+h5 { font-size: 17px; line-height: 5px; }
+h6 { font-size: 14px; line-height: 0px; }

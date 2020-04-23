@@ -27,6 +27,7 @@ dependencies:
 - word8
 - directory
 - utf8-string
+- extra
 
 library:
   source-dirs: src
