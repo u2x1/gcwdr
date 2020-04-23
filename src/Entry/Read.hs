@@ -40,7 +40,7 @@ trans path' = do
 
   -- Remove out-dated public dir.
   ext <- doesDirectoryExist (path <> "public")
-  _ <- if ext then pure () else removeDirectoryRecursive (path <> "public")
+  _ <- if ext then removeDirectoryRecursive (path <> "public") else pure () 
 
   -- Copy static files of theme.
   traverse_ (\sPath ->
