@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d1f986292ceeffb8b69a0db74abc5e7b40e5dfc639062d19758a70640d38680e
+-- hash: 50406578428046ce3f52a78548ee6cbccd2ad0f77416bbf18c0e1e53b9efb2b1
 
 name:           gcwdr
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/gcwdr#readme>
-homepage:       https://github.com/githubuser/gcwdr#readme
-bug-reports:    https://github.com/githubuser/gcwdr/issues
-author:         Author name here
-maintainer:     example@example.com
-copyright:      2020 Author name here
+description:    Please see the README on GitHub at <https://github.com/nutr1t07/gcwdr#readme>
+homepage:       https://github.com/Nutr1t07/gcwdr#readme
+bug-reports:    https://github.com/Nutr1t07/gcwdr/issues
+author:         Nutr1t07
+maintainer:     nutr1t07@outlook.com
+copyright:      2020 Nutr1t07
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
@@ -22,7 +22,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/gcwdr
+  location: https://github.com/Nutr1t07/gcwdr
 
 library
   exposed-modules:

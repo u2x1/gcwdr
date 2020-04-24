@@ -35,12 +35,31 @@ convertTP' _ (Raw rawHtml) = Just rawHtml
 convertTP' _ IfStmt = Nothing
 convertTP' objs s@ForeachStmt {} = convertForeach objs s
 convertTP' objs s@DotStmt {} = convertDot objs s
-convertTP' _ _ = Nothing
+convertTP' objs s@PartialStmt {} = convertPartial objs s
+
+convertPartial :: ObjectTree -> Stmt -> Maybe ByteString
+convertPartial objs (PartialStmt partPath) =
+  case getNode "global" objs >>= getNode "partial" >>= getLeaf partPath of
+    Just (ObjLeaf partFile) -> Just $ convertTP objs partFile
+    _ -> Nothing
+
+getNode key (ObjNode objs) = case objs ! key of
+                               x@(ObjNode _) -> Just x
+                               _ -> Nothing
+getNode _ _ = Nothing
+
+getLeaf key (ObjNode objs) = case objs ! key of
+                           x@(ObjLeaf _) -> Just x
+                           _ -> Nothing
+getLeaf _ _ = Nothing
+
+
 
 convertForeach :: ObjectTree -> Stmt -> Maybe ByteString
 convertForeach (ObjNode objs) (ForeachStmt holder dotObj stmts) =
   case convertDot2NodeList (ObjNode objs) dotObj of
-    Just nodeList -> mconcat.mconcat $ fmap (\node -> fmap (convertTP' (ObjNode $ M.singleton holder (ObjNode node))) stmts) nodeList
+    Just nodeList -> mconcat.mconcat $
+      fmap (\node -> fmap (convertTP' (ObjNode $ M.singleton holder (ObjNode node))) stmts) nodeList
     _ -> Nothing
 convertForeach _ _ = Nothing
 
@@ -58,10 +77,10 @@ convertDot2NodeList _ _ = Nothing
 convertDot :: ObjectTree -> Stmt -> Maybe ByteString
 convertDot (ObjNode objs) (DotStmt obj mems) =
   let
-    run _ (ObjLeaf s) [] = Just s
-    run objs' (ObjNode obj') (x:xs) = run objs' (obj' ! x) xs
-    run _ _ _ = Nothing in
+    run (ObjLeaf s) [] = Just s
+    run (ObjNode obj') (x:xs) = run (obj' ! x) xs
+    run _ _ = Nothing in
   if obj /= ""
-     then run objs (objs ! obj) mems
-     else run objs (ObjNode objs) mems
+     then run (objs ! obj) mems
+     else run (ObjNode objs) mems
 convertDot _ _ = Nothing
