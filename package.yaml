@@ -6,9 +6,6 @@ author:              "Nutr1t07"
 maintainer:          "nutr1t07@outlook.com"
 copyright:           "2020 Nutr1t07"
 
-extra-source-files:
-- README.md
-
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
 # category:            Web
