@@ -1,5 +1,29 @@
 # gcwdr
 
+A static blog generator. The idea of template steals from [Hugo](https://github.com/gohugoio/hugo).
+
+The generator is at a very early stage. The template function now supports:
+
+1. dot
+   ```
+   [- this.content -]
+   ```
+
+2. foreach
+
+   ```
+   [- foreach x in global.post -]
+     <li>[- x.title -]<li>
+   [- end -]
+   ```
+
+3. partial
+
+   ```
+   [- partial header.html -]
+   ```
+   Partial files should be placed under `theme/layout/partial/`. This is a __fix__ path.
+
 ## Demo
 
 ```
@@ -40,7 +64,6 @@ test-data
 ├── public
 │   ├── css
 │   │   ├── custom.css
-│   │   ├── skeleton
 │   │   └── skeleton.css
 │   ├── index.html
 │   └── post
