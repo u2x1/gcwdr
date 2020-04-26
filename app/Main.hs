@@ -12,9 +12,10 @@ import Data.ByteString.UTF8 (toString)
 
 main :: IO ()
 main = do
-  trans "."
+  let root = "./"
+  trans root
   putStrLn "Web preview is running under http://localhost:4000."
-  runTCPServer Nothing "4000" (showHtml "public")
+  runTCPServer Nothing "4000" (showHtml (root <> "public"))
   where
     showHtml path s = do
         msg <- recv s 1024

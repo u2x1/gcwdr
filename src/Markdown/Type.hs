@@ -2,13 +2,7 @@ module Markdown.Type where
 
 import Data.ByteString
 
-data MDElem = Header1             ByteString
-            | Header2             ByteString
-            | Header3             ByteString
-            | Header4             ByteString
-            | Header5             ByteString
-            | Header6             ByteString
-            | Header7             ByteString
+data MDElem = Header              Int ByteString
             | Paragrah            [MDElem]    -- Should contain Italic, Bold, BoldAndItalic, Code
                                               --                                    , Link, Image
             | PlainText           ByteString
@@ -20,9 +14,9 @@ data MDElem = Header1             ByteString
             | CodeBlock           ByteString
             | Link                [MDElem] ByteString (Maybe ByteString)
             | Image               ByteString ByteString (Maybe ByteString)
-            | OrderedList         [MDElem]
-            | UnorderedList       [MDElem]
-            | ListElem            [MDElem]
-            | Blockquotes         [MDElem]
+            | OrderedList         [MDElem]    -- Should contain ListElem
+            | UnorderedList       [MDElem]    -- As above
+            | ListElem            [MDElem]    -- Should contain the same as Paragrah contains
+            | Blockquotes         [MDElem]    -- Should contain the whole fuckin universe
             | HorizontalRule
   deriving (Show)

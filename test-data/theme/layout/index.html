@@ -3,12 +3,17 @@
       <div class="post-list content">
 
       <h3>Blog</h3>
-       [- foreach x in this.post -]
+       [- foreach x in this.categories -]
+
+        <h3> [- x.cateName -] </h3>
+
+       [- foreach y in x.post -]
         <li>
-          <a href="[- x.relLink -]">[- x.title -]</a>
-          <span class="date"> - [- x.date -]</span>
-        </li>
+          <a href="[- y.relLink -]">[- y.title -]</a>
+          <span class="date"> - [- y.date -]</span>
        [- end -]
+        </li>
+     [- end -]
       </div>
     </div>
 

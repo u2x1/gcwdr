@@ -130,20 +130,18 @@ orderedList = OrderedList . mconcat <$> some (some (satisfy isDigit) *> word8 46
 
 unorderedList :: Parser MDElem
 unorderedList = UnorderedList . mconcat <$> some (satisfy isAstrOrDash *> listElem 0)
-  where isAstrOrDash w = w == 42 || w == 43 || w == 45
 
 orderedList' :: Int -> Parser MDElem
 orderedList' indent = OrderedList . mconcat <$> some (count indent (word8 32) *> some (satisfy isDigit) *> word8 46 *> listElem indent)
 
 unorderedList' :: Int ->  Parser MDElem
 unorderedList' indent = UnorderedList . mconcat <$> (some (count indent (word8 32) *> satisfy isAstrOrDash *> listElem indent) <* skipEndOfLine)
-  where isAstrOrDash w = w == 42 || w == 43 || w == 45
 
 listElem :: Int -> Parser [MDElem]
 listElem hIndent = do
   _ <- some (word8 32)
   text <- takeTill isEndOfLine <* satisfy isEndOfLine
-  let lElem = case parseOnly (some paraElem) (text<>"\n") of
+  let lElem = case parseOnly (some paraElem) (text <> "\n") of
                 Right p -> p
                 Left _ -> [PlainText text]
   s <- pack <$> lookAhead (count (hIndent+1) anyWord8)
@@ -152,44 +150,22 @@ listElem hIndent = do
        spaceCnt <- many' (satisfy isEndOfLine) *> lookAhead (count hIndent (word8 32) *> some (word8 32))
        let indent = hIndent + Prelude.length spaceCnt
        inListElem <-
-         codeBlock <|> image <|> orderedList' indent <|> unorderedList' indent <|> para <|> blockquotes
+         codeBlock <|> blockquotes <|> image <|> orderedList' indent <|> unorderedList' indent <|> para
        return [ListElem lElem, inListElem]
      else return [ListElem lElem]
 
-
 header :: Parser MDElem
-header = h1 <|> h2 <|> h3 <|> h4 <|> h5 <|> h6 <|> h7
-
-h1 :: Parser MDElem
-h1 = Header1 <$> header' 1
-
-h2 :: Parser MDElem
-h2 = Header2 <$> header' 2
-
-h3 :: Parser MDElem
-h3 = Header3 <$> header' 3
-
-h4 :: Parser MDElem
-h4 = Header4 <$> header' 4
-
-h5 :: Parser MDElem
-h5 = Header5 <$> header' 5
-
-h6 :: Parser MDElem
-h6 = Header6 <$> header' 6
-
-h7 :: Parser MDElem
-h7 = Header7 <$> header' 7
-
-header' :: Int -> Parser ByteString
-header' i = do
-  _ <- count i (word8 35)
-  _ <- lookAhead (notWord8 35)
+header = do
+  headerSize <- length <$> some (word8 35)
   _ <- some (word8 32)
-  takeTill isEndOfLine <* skipEndOfLine
+  text <- takeTill isEndOfLine <* skipEndOfLine
+  return (Header headerSize text)
 
 isEndOfLine :: Word8 -> Bool
 isEndOfLine w = w == 10 || w == 13
 
 isAstrOrUds :: Word8 -> Bool
 isAstrOrUds w = w == 95 || w == 42
+
+isAstrOrDash :: Word8 -> Bool
+isAstrOrDash w = w == 42 || w == 43 || w == 45

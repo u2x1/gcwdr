@@ -25,7 +25,7 @@ stmt' :: Parser Stmt
 stmt' = do
   _ <- string "[-" *> many (word8 32)
   s <- pack <$> manyTill anyWord8 (string "-]")
-  case parseOnly (partialsStmt  <|> dotStmt) s of
+  case parseOnly (partialsStmt <|> dotStmt) s of
     Left _ -> fail "Parse statement failed."
     Right x -> return x
 
@@ -53,4 +53,4 @@ foreachStmt = do
 raw :: Parser Stmt
 raw = do
   w <- anyWord8
-  Raw . (BS.singleton w <>) <$> takeTill (==91)
+  Raw . (BS.singleton w <>) <$> takeTill (== 91)

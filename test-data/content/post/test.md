@@ -1,5 +1,6 @@
 title: test
 date: 2020-04-26
+category: Tech
 ---
 
 # h1 Heading

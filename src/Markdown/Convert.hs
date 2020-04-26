@@ -4,6 +4,7 @@ module Markdown.Convert where
 import Data.Word8
 import Data.Attoparsec.ByteString
 import Data.ByteString as BS (ByteString, init, last, pack, unpack)
+import Data.ByteString.UTF8 (fromString)
 import Data.List (intersperse)
 import Markdown.Type
 import Markdown.Parser
@@ -15,13 +16,7 @@ convertMD s = case parseOnly (many' mdElem) (s <> "\n") of
                 _ -> ""
 
 convertMD' :: MDElem -> ByteString
-convertMD' (Header1 x) = addElemTag' "h1" x
-convertMD' (Header2 x) = addElemTag' "h2" x
-convertMD' (Header3 x) = addElemTag' "h3" x
-convertMD' (Header4 x) = addElemTag' "h4" x
-convertMD' (Header5 x) = addElemTag' "h5" x
-convertMD' (Header6 x) = addElemTag' "h6" x
-convertMD' (Header7 x) = addElemTag' "h7" x
+convertMD' (Header hz x) = addElemTag' ("h" <> fromString (show hz)) x
 convertMD' HorizontalRule         = "<hr>\n"
 convertMD' (Paragrah xs)          = addElemTag' "p" $ concatAndInit $ convertMD' <$> xs
 convertMD' (Blockquotes xs)       = addElemTag'' "blockquote" $ concatAndInit $ convertMD' <$> xs
