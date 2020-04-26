@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ff04112a3d3421cc31b6063cb26ca8c71be7d8a7d24c703fcb4e81295e68b455
+-- hash: 1116bcf646b1d7eca4ddbc81f583c059d9bcd6f4826af2eee712ef6a46ece86d
 
 name:           gcwdr
 version:        0.1.0.0
@@ -42,7 +42,9 @@ library
     , containers
     , directory
     , extra
+    , html-entities
     , network
+    , stringsearch
     , time
     , utf8-string
     , word8
@@ -63,7 +65,9 @@ executable gcwdr-exe
     , directory
     , extra
     , gcwdr
+    , html-entities
     , network
+    , stringsearch
     , time
     , utf8-string
     , word8
@@ -85,7 +89,9 @@ test-suite gcwdr-test
     , directory
     , extra
     , gcwdr
+    , html-entities
     , network
+    , stringsearch
     , time
     , utf8-string
     , word8

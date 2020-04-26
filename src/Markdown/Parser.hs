@@ -27,10 +27,11 @@ mdElem = blockquotes <|> orderedList <|> unorderedList <|> codeBlock <|> header 
 
 para :: Parser MDElem
 para = Paragrah <$> do
-  paras <- manyTill (italic <|> bold <|> boldAndItalic <|> strikethrough <|> link <|> image <|> code <|> plainText)
-              (satisfy isEndOfLine)
+  paras <- manyTill paraElem (satisfy isEndOfLine)
   _ <- many' (satisfy isEndOfLine)
   return paras
+
+paraElem = italic <|> bold <|> boldAndItalic <|> strikethrough <|> link <|> image <|> code <|> plainText
 
 plainText :: Parser MDElem
 plainText = PlainText <$> do
@@ -80,7 +81,10 @@ linkAndImageBracket = do
 
 link :: Parser MDElem
 link = do
-  (text, url, title) <- linkAndImageBracket
+  (text', url, title) <- linkAndImageBracket
+  let text = case parseOnly (some paraElem) text' of
+               Right x -> x
+               Left _ -> [PlainText text']
   return (Link text url title)
 
 image :: Parser MDElem
@@ -99,7 +103,7 @@ code = do
 codeBlock :: Parser MDElem
 codeBlock = do
   _ <- string "```" <* skipEndOfLine
-  CodeBlock . pack <$> (manyTill anyWord8 (string "```") <* skipEndOfLine)
+  CodeBlock . pack <$> (manyTill anyWord8 (string "\n```") <* skipEndOfLine)
 
 hrztRule :: Parser MDElem
 hrztRule = do
@@ -139,6 +143,9 @@ listElem :: Int -> Parser [MDElem]
 listElem hIndent = do
   _ <- some (word8 32)
   text <- takeTill isEndOfLine <* satisfy isEndOfLine
+  let lElem = case parseOnly (some paraElem) (text<>"\n") of
+                Right p -> p
+                Left _ -> [PlainText text]
   s <- pack <$> lookAhead (count (hIndent+1) anyWord8)
   if s == mconcat (replicate (hIndent + 1) " ")
      then do
@@ -146,8 +153,8 @@ listElem hIndent = do
        let indent = hIndent + Prelude.length spaceCnt
        inListElem <-
          codeBlock <|> image <|> orderedList' indent <|> unorderedList' indent <|> para <|> blockquotes
-       return [ListElem text, inListElem]
-     else return [ListElem text]
+       return [ListElem lElem, inListElem]
+     else return [ListElem lElem]
 
 
 header :: Parser MDElem

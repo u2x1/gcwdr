@@ -46,12 +46,16 @@ convertPartial objs (PartialStmt partPath) =
   case getNode "global" objs >>= getNode "partial" >>= getLeaf partPath of
     Just (ObjLeaf partFile) -> Just $ convertTP objs partFile
     _ -> Nothing
+convertPartial _ _ = Nothing
 
+
+getNode :: ByteString -> ObjectTree -> Maybe ObjectTree
 getNode key (ObjNode objs) = case objs ! key of
                                x@(ObjNode _) -> Just x
                                _ -> Nothing
 getNode _ _ = Nothing
 
+getLeaf :: ByteString -> ObjectTree -> Maybe ObjectTree
 getLeaf key (ObjNode objs) = case objs ! key of
                            x@(ObjLeaf _) -> Just x
                            _ -> Nothing

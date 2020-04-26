@@ -4,7 +4,6 @@ module Main where
 import Control.Monad
 import Control.Concurrent
 import Entry.Read
-import System.IO
 import Network.Socket
 import qualified Control.Exception as E
 import qualified Data.ByteString as S
@@ -13,15 +12,16 @@ import Data.ByteString.UTF8 (toString)
 
 main :: IO ()
 main = do
-  trans "./test-data"
-  runTCPServer Nothing "4000" talk
+  trans "."
+  putStrLn "Web preview is running under http://localhost:4000."
+  runTCPServer Nothing "4000" (showHtml "public")
   where
-    talk s = do
+    showHtml path s = do
         msg <- recv s 1024
         unless (S.null msg) $
           if S.take 3 msg == "GET"
              then do
-               resp <- getFile "./test-data/public" (toString $ S.takeWhile (/= 32) (S.drop 4 msg))
+               resp <- getFile path (toString $ S.takeWhile (/= 32) (S.drop 4 msg))
                sendAll s ("HTTP/1.1 200 OK\n\n" <> resp)
              else sendAll s "HTTP/1.1 200 OK\n\n"
 

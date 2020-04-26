@@ -26,6 +26,8 @@ dependencies:
 - utf8-string
 - extra
 - network
+- html-entities
+- stringsearch
 
 library:
   source-dirs: src
