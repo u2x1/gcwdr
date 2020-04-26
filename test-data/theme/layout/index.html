@@ -5,7 +5,7 @@
       <h3>Blog</h3>
        [- foreach x in this.post -]
         <li>
-          <a href="">[- x.title -]</a>
+          <a href="[- x.relLink -]">[- x.title -]</a>
           <span class="date"> - [- x.date -]</span>
         </li>
        [- end -]

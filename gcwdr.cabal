@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 50406578428046ce3f52a78548ee6cbccd2ad0f77416bbf18c0e1e53b9efb2b1
+-- hash: ff04112a3d3421cc31b6063cb26ca8c71be7d8a7d24c703fcb4e81295e68b455
 
 name:           gcwdr
 version:        0.1.0.0
@@ -17,8 +17,6 @@ copyright:      2020 Nutr1t07
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-    README.md
 
 source-repository head
   type: git
@@ -44,6 +42,7 @@ library
     , containers
     , directory
     , extra
+    , network
     , time
     , utf8-string
     , word8
@@ -64,6 +63,7 @@ executable gcwdr-exe
     , directory
     , extra
     , gcwdr
+    , network
     , time
     , utf8-string
     , word8
@@ -85,6 +85,7 @@ test-suite gcwdr-test
     , directory
     , extra
     , gcwdr
+    , network
     , time
     , utf8-string
     , word8

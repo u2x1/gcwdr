@@ -25,6 +25,7 @@ dependencies:
 - directory
 - utf8-string
 - extra
+- network
 
 library:
   source-dirs: src

@@ -35,6 +35,7 @@ addListLayer str ot = ObjNode (M.singleton str ot)
 addLayer :: ByteString -> Map ByteString ObjectTree -> ObjectTree -> ObjectTree
 addLayer str glbRes ot = ObjNode (M.singleton str ot <> glbRes)
 
+
 getLayoutFile :: ObjectTree -> Maybe FilePath
 getLayoutFile x = case getNode "this" x >>= getLeaf "template" of
                     Just (ObjLeaf t) -> Just $ toString ("./test-data/theme/layout/" <> t <> ".html")
@@ -45,7 +46,7 @@ trans path' = do
   let path = if last path' == '/' then path' else path' <> "/"
   contentFiles <- getAllFiles path
 
-  let postMdFiles = filter (\p -> (path <> "content/post/") `isPrefixOf` p && ".md" `isSuffixOf` p) contentFiles
+  let posts = filter (\p -> (path <> "content/post/") `isPrefixOf` p && ".md" `isSuffixOf` p) contentFiles
       statics = filter (\p -> (path <> "theme/static") `isPrefixOf` p) contentFiles
       partials = filter (\p -> (path <> "theme/layout/partial") `isPrefixOf` p) contentFiles
 
@@ -55,6 +56,8 @@ trans path' = do
   let partialRes = singleton "partial" (ObjNode (M.fromList partialMap))
       globalRes = singleton "global" (ObjNode partialRes)
 
+  let addGlb = addLayer "this" globalRes
+
   -- Remove out-dated public dir.
   ext <- doesDirectoryExist (path <> "public")
   _ <- if ext then removeDirectoryRecursive (path <> "public") else pure ()
@@ -63,17 +66,17 @@ trans path' = do
   traverse_ (\sPath ->
     let filePath = (((path <> "public") <>) . drop (length (path <> "theme/static"))) sPath in
     catch
-      (copyFile sPath filePath) ((\_ ->
-        createDirectoryIfMissing True (init . dropWhileEnd (/='/') $ filePath) >>
+      (copyFile sPath filePath) ((pure $
+        createDirectoryIfMissing True (dropWhileEnd (/='/') filePath) >>
           copyFile sPath filePath) :: SomeException -> IO ()))
             statics
 
   -- Convert template.
-  postObjs <- catMaybes <$> traverse parsePost postMdFiles
+  postObjs <- catMaybes <$> traverse parsePost posts
   postHtmls <- traverse (\x -> convertTP x <$> BS.readFile (fromJust $ getLayoutFile x))
-                 (addLayer "this" globalRes <$> postObjs)
+                 (addGlb <$> postObjs)
   indexHtml <- do
-    let indexObjTree = addLayer "this" globalRes $ addListLayer "post" $ ObjListNode $ (\(ObjNode x) -> x) <$> postObjs
+    let indexObjTree = addGlb $ addListLayer "post" $ ObjListNode $ (\(ObjNode x) -> x) <$> postObjs
     convertTP indexObjTree <$> BS.readFile (path <> "theme/layout/index.html")
 
   -- Generate index html.
@@ -83,4 +86,4 @@ trans path' = do
   traverse_ (\(sPath, mdHtml) -> do
     let htmlPath = ((path <> "public/post/") <>) . drop (length (path <> "content/post/")) . take (length sPath - 3) $ sPath
     _ <- createDirectoryIfMissing True htmlPath
-    BS.writeFile (htmlPath <> "/index.html") mdHtml) (zip postMdFiles postHtmls)
+    BS.writeFile (htmlPath <> "/index.html") mdHtml) (zip posts postHtmls)

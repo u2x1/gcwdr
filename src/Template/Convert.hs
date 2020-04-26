@@ -3,16 +3,20 @@ module Template.Convert where
 
 import Template.Type
 import Data.Map.Lazy as M
-import Data.ByteString as BS
+import Data.ByteString as BS (ByteString, readFile, init, last)
+import Data.ByteString.UTF8 (fromString)
 import Data.Attoparsec.ByteString
 import Template.Parser
 import Data.Maybe
+import Data.List.Extra as LE (takeWhileEnd, init, dropWhileEnd)
 
 parsePost :: FilePath -> IO (Maybe ObjectTree)
 parsePost path = do
   s <- BS.readFile path
   case parseOnly post s of
-    Right x -> pure (Just x)
+    Right (ObjNode x) -> do
+      let relPath = fromString $ takeWhileEnd (/='/') $ LE.init $ dropWhileEnd (/='.') path
+      pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf ("/post/" <> relPath <> "/")) <> x))
     _ -> pure Nothing
 
 convertTP :: ObjectTree -> ByteString -> ByteString
