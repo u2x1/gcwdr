@@ -25,18 +25,25 @@ metaData = do
 mdElem :: Parser MDElem
 mdElem = blockquotes <|> orderedList <|> unorderedList <|> codeBlock <|> header <|> hrztRule <|> para
 
+escapeChar :: Parser MDElem
+escapeChar = do
+  _ <- word8 92
+  x <- BS.singleton <$> satisfy (`elem` [92,96,42,95,123,91,40,35,43,45,46,33,124])
+  return (PlainText x)
+
 para :: Parser MDElem
 para = Paragrah <$> do
   paras <- manyTill paraElem (satisfy isEndOfLine)
   _ <- many' (satisfy isEndOfLine)
   return paras
 
-paraElem = italic <|> bold <|> boldAndItalic <|> strikethrough <|> link <|> image <|> code <|> plainText
+paraElem :: Parser MDElem
+paraElem = escapeChar <|> italic <|> bold <|> boldAndItalic <|> strikethrough <|> link <|> image <|> code <|> plainText
 
 plainText :: Parser MDElem
 plainText = PlainText <$> do
   w <- anyWord8
-  text <- takeTill (inClass "![_*`\n")
+  text <- takeTill (inClass "![_*`\\\n")
   return (BS.singleton w <> text)
 
 emphasis :: Parser ByteString

@@ -9,7 +9,6 @@ import Data.Foldable
 import Data.Ord
 import Template.Convert
 import Data.List.Extra
-import Data.Tuple.Extra
 import System.Directory
 import Template.Type
 import Data.Maybe
@@ -39,15 +38,19 @@ getLayoutFile root x = case getNode "this" x >>= getLeaf "template" of
                     Just (ObjLeaf t) -> Just (root <> "theme/layout/" <> toString t <> ".html")
                     _ -> Nothing
 
+getDate :: ObjectTree -> UTCTime
 getDate (ObjNode x) =
   case x ! "date" of
     ObjLeaf x' -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (toString x') :: UTCTime
     _ -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" "2000-01-01" :: UTCTime
+getDate _ = parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" "2000-01-01" :: UTCTime
 
+getCategory :: ObjectTree -> ByteString
 getCategory (ObjNode x) =
   case x ! "category" of
     ObjLeaf x' -> x'
     _ -> "Uncategoried"
+getCategory _ = "Uncategoried"
 
 toObjNodeList :: [ObjectTree] -> ObjectTree
 toObjNodeList = ObjListNode . fmap (\(ObjNode x) -> x)
@@ -55,12 +58,13 @@ toObjNodeList = ObjListNode . fmap (\(ObjNode x) -> x)
 trans :: FilePath -> IO ()
 trans root' = do
   let root = if last root' == '/' then root' else root' <> "/"
-  contentFiles <- getAllFiles root
+  allFiles <- getAllFiles root
 
-  let posts = filter (\p -> (root <> "content/post/") `isPrefixOf` p && ".md" `isSuffixOf` p) contentFiles
-      pages = filter (\p -> (root <> "content/page/") `isPrefixOf` p && ".md" `isSuffixOf` p) contentFiles
-      statics = filter (\p -> (root <> "theme/static") `isPrefixOf` p) contentFiles
-      partials = filter (\p -> (root <> "theme/layout/partial") `isPrefixOf` p) contentFiles
+  let posts = filter (\p -> (root <> "content/post/") `isPrefixOf` p && ".md" `isSuffixOf` p) allFiles
+      pages = filter (\p -> (root <> "content/page/") `isPrefixOf` p && ".md" `isSuffixOf` p) allFiles
+      cStatics = filter (isPrefixOf (root <> "content/static/")) allFiles
+      statics = filter (isPrefixOf (root <> "theme/static/")) allFiles
+      partials = filter (isPrefixOf (root <> "theme/layout/partial")) allFiles
 
 
   rawPartials <- traverse BS.readFile partials
@@ -77,8 +81,8 @@ trans root' = do
   postHtmls <- traverse (\x -> do
     html <- getHtml x
     let relLink = case getNode "this" x >>= getLeaf "relLink" of
-                    Just (ObjLeaf x) -> toString x
-                    Nothing -> "/404.html"
+                    Just (ObjLeaf x') -> toString x'
+                    _ -> "/404.html"
     pure (relLink, html))
                  (fmap addGlb postObjs)
 
@@ -100,6 +104,15 @@ trans root' = do
   -- Remove out-dated public dir.
   ext <- doesDirectoryExist (root <> "public")
   _ <- if ext then removeDirectoryRecursive (root <> "public") else pure ()
+
+  -- Copy static files of content.
+  traverse_ (\sPath ->
+    let filePath = (((root <> "public") <>) . drop (length (root <> "content/static"))) sPath in
+    catch
+      (copyFile sPath filePath) ((pure $
+        createDirectoryIfMissing True (dropWhileEnd (/='/') filePath) >>
+          copyFile sPath filePath) :: SomeException -> IO ()))
+          cStatics
 
   -- Copy static files of theme.
   traverse_ (\sPath ->
