@@ -14,6 +14,8 @@ category: Tech
 
 ## Horizontal Rules
 
+fuck[^1]
+
 ___
 
 ---
@@ -77,3 +79,9 @@ Sample text here...
 
 ![Minion](https://octodex.github.com/images/minion.png)
 ![Stormtroopocat](https://octodex.github.com/images/stormtroopocat.jpg "The Stormtroopocat")
+
+[^1]: xxfucku
+  but nop
+  shit
+  1. shit
+  2. fuck

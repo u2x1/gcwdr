@@ -3,6 +3,7 @@ module Markdown.Parser where
 
 import Data.Attoparsec.ByteString as APB
 import Data.Attoparsec.Combinator
+import Data.ByteString.UTF8 (fromString)
 import Data.ByteString as BS (ByteString, pack, singleton)
 import Data.Functor
 import Data.Word8
@@ -23,7 +24,7 @@ metaData = do
           return (obj, text)
 
 mdElem :: Parser MDElem
-mdElem = blockquotes <|> orderedList <|> unorderedList <|> codeBlock <|> header <|> hrztRule <|> para
+mdElem = footnoteRef <|> blockquotes <|> orderedList <|> unorderedList <|> codeBlock <|> header <|> hrztRule <|> para
 
 escapeChar :: Parser MDElem
 escapeChar = do
@@ -38,7 +39,7 @@ para = Paragrah <$> do
   return paras
 
 paraElem :: Parser MDElem
-paraElem = escapeChar <|> italic <|> bold <|> boldAndItalic <|> strikethrough <|> link <|> image <|> code <|> plainText
+paraElem = escapeChar <|> italic <|> bold <|> boldAndItalic <|> strikethrough <|> footnote <|> link <|> image <|> code <|> plainText
 
 plainText :: Parser MDElem
 plainText = PlainText <$> do
@@ -147,7 +148,7 @@ unorderedList' indent = UnorderedList . mconcat <$> (some (count indent (word8 3
 listElem :: Int -> Parser [MDElem]
 listElem hIndent = do
   _ <- some (word8 32)
-  text <- takeTill isEndOfLine <* satisfy isEndOfLine
+  text <- takeTill isEndOfLine <* some (satisfy isEndOfLine)
   let lElem = case parseOnly (some paraElem) (text <> "\n") of
                 Right p -> p
                 Left _ -> [PlainText text]
@@ -167,6 +168,26 @@ header = do
   _ <- some (word8 32)
   text <- takeTill isEndOfLine <* skipEndOfLine
   return (Header headerSize text)
+
+footnote :: Parser MDElem
+footnote = Footnote <$> (string "[^" *> takeTill (== 93) <* word8 93)
+
+footnoteRef :: Parser MDElem
+footnoteRef = do
+  identity <- string "[^" *> takeTill (== 93) <* string "]:" <* many (satisfy isSpace)
+  fElem <- pure <$> para <* many (satisfy isEndOfLine) -- Lift into list
+  iElems <- mconcat <$> many (elemInside <* many (satisfy isEndOfLine))
+  return (FootnoteRef identity (addReverse (fElem <> iElems) identity))
+  where
+    addReverse xs identity =
+      init xs <> case last xs of
+                   Paragrah x -> pure $ Paragrah (x <> [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing])
+                   x -> x : [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing]
+    elemInside = do
+      s <- pack <$> lookAhead (count 1 anyWord8)
+      if s == " "
+         then pure <$> para
+         else fail ""
 
 isEndOfLine :: Word8 -> Bool
 isEndOfLine w = w == 10 || w == 13

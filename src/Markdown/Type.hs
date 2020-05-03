@@ -18,5 +18,8 @@ data MDElem = Header              Int ByteString
             | UnorderedList       [MDElem]    -- As above
             | ListElem            [MDElem]    -- Should contain the same as Paragrah contains
             | Blockquotes         [MDElem]    -- Should contain the whole fuckin universe
+            | Footnote            ByteString
+            | FootnoteRef         ByteString [MDElem]
+            | FootnoteRefs        [MDElem]
             | HorizontalRule
   deriving (Show)
