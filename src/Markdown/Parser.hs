@@ -5,6 +5,7 @@ import Data.Attoparsec.ByteString as APB
 import Data.Attoparsec.Combinator
 import Data.ByteString.UTF8 (fromString)
 import Data.ByteString as BS (ByteString, pack, singleton)
+import qualified Data.ByteString as BS (last)
 import Data.Functor
 import Data.Word8
 import Control.Applicative
@@ -34,7 +35,10 @@ escapeChar = do
 
 para :: Parser MDElem
 para = Paragrah <$> do
-  paras <- manyTill paraElem (satisfy isEndOfLine)
+  text <- takeTill isEndOfLine
+  paras <- case parseOnly (some paraElem) text of
+             Right x -> pure x
+             Left x -> fail x
   _ <- many' (satisfy isEndOfLine)
   return paras
 
@@ -78,14 +82,14 @@ strikethrough = Strikethrough . pack <$> (string "~~" *> manyTill' anyWord8 (str
 
 linkAndImageBracket :: Parser (ByteString, ByteString, Maybe ByteString)
 linkAndImageBracket = do
-  text <- word8 91 *> takeTill (== 93) <* word8 93
-  url <- word8 40 *> takeTill (\w -> w == 32 || w == 41)
-  s <- lookAhead (many' (word8 32) *> anyWord8)
-  if s == 34
+  text <- word8 91 *> takeTill (== 93) <* word8 93  -- [ *> text *< ]
+  url <- word8 40 *> takeTill (\w -> w == 32 || w == 41)  -- '(' *> url *< (' ' || ')')
+  flag <- anyWord8
+  if flag == 32
      then do
-       title <- many' (word8 32) *> word8 34 *> takeTill (== 34) <* word8 34 <* word8 41
+       title <- many' (word8 32) *> word8 34 *> takeTill (== 34) <* string "\")"
        return (text, url, Just title)
-       else word8 41 $> (text, url, Nothing)
+     else pure (text, url, Nothing)
 
 link :: Parser MDElem
 link = do
@@ -115,7 +119,7 @@ codeBlock = do
 
 hrztRule :: Parser MDElem
 hrztRule = do
-  _ <- count 3 (satisfy isAstrOrUdsOrDash) *> many' (satisfy isAstrOrUdsOrDash)
+  _ <- count 3 (satisfy isAstrOrUdsOrDash) *> satisfy isEndOfLine
   HorizontalRule <$ skipEndOfLine
   where
     isAstrOrUdsOrDash w = isAstrOrUds w || w == 45
@@ -126,7 +130,7 @@ skipEndOfLine = many (satisfy isEndOfLine)
 blockquotes :: Parser MDElem
 blockquotes = do
   cnt <- length <$> lookAhead (some takePrefix)
-  text <- mconcat <$> some ((<>"\n") <$> (count cnt takePrefix *> takeTill isEndOfLine <* satisfy isEndOfLine))
+  text <- mconcat <$> some ((<>"\n") <$> (count cnt takePrefix *> takeTill isEndOfLine <* many' (satisfy isEndOfLine)))
   case parseOnly (some mdElem) text of
     Right mdElems -> return (Blockquotes mdElems)
     Left _ -> return (Blockquotes [PlainText text])
@@ -148,19 +152,22 @@ unorderedList' indent = UnorderedList . mconcat <$> (some (count indent (word8 3
 listElem :: Int -> Parser [MDElem]
 listElem hIndent = do
   _ <- some (word8 32)
-  text <- takeTill isEndOfLine <* some (satisfy isEndOfLine)
-  let lElem = case parseOnly (some paraElem) (text <> "\n") of
+  text <- takeTill isEndOfLine <* many' (satisfy isEndOfLine)
+  let lElem = case parseOnly (some paraElem) text of
                 Right p -> p
                 Left _ -> [PlainText text]
-  s <- pack <$> lookAhead (count (hIndent+1) anyWord8)
-  if s == mconcat (replicate (hIndent + 1) " ")
-     then do
-       spaceCnt <- many' (satisfy isEndOfLine) *> lookAhead (count hIndent (word8 32) *> some (word8 32))
-       let indent = hIndent + Prelude.length spaceCnt
-       inListElem <-
-         codeBlock <|> blockquotes <|> image <|> orderedList' indent <|> unorderedList' indent <|> para
-       return [ListElem lElem, inListElem]
-     else return [ListElem lElem]
+  if BS.last text /= 10
+     then return [ListElem lElem]
+     else do
+       s <- pack <$> lookAhead (count (hIndent + 1) anyWord8)
+       if s == mconcat (replicate (hIndent + 1) " ")
+          then do
+            spaceCnt <- lookAhead (count hIndent (word8 32) *> some (word8 32))
+            let indent = hIndent + Prelude.length spaceCnt
+            inListElem <-
+              codeBlock <|> blockquotes <|> image <|> orderedList' indent <|> unorderedList' indent <|> para
+            return [ListElem lElem, inListElem]
+          else return [ListElem lElem]
 
 header :: Parser MDElem
 header = do
@@ -174,19 +181,24 @@ footnote = Footnote <$> (string "[^" *> takeTill (== 93) <* word8 93)
 
 footnoteRef :: Parser MDElem
 footnoteRef = do
-  identity <- string "[^" *> takeTill (== 93) <* string "]:" <* many (satisfy isSpace)
-  fElem <- pure <$> para <* many (satisfy isEndOfLine) -- Lift into list
+  identity <- string "[^" *> takeTill (== 93) <* string "]:" <* many (word8 32)
+  fstElem <- takeTill isEndOfLine <* many (satisfy isEndOfLine)
+  fElem <- case parseOnly mdElem fstElem of
+             Right x -> pure [x]
+             _ -> pure []
   iElems <- mconcat <$> many (elemInside <* many (satisfy isEndOfLine))
-  return (FootnoteRef identity (addReverse (fElem <> iElems) identity))
+  return (FootnoteRef identity (addSign (fElem <> iElems) identity))
   where
-    addReverse xs identity =
-      init xs <> case last xs of
-                   Paragrah x -> pure $ Paragrah (x <> [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing])
-                   x -> x : [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing]
+    addSign xs identity = init xs <>
+      case last xs of
+        Paragrah x -> [Paragrah (x <> [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing])]
+        x -> x : [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing]
     elemInside = do
-      s <- pack <$> lookAhead (count 1 anyWord8)
-      if s == " "
-         then pure <$> para
+      s <- lookAhead anyWord8
+      if s == 32
+         then do
+           many' (satisfy isSpace)
+           pure <$> mdElem
          else fail ""
 
 isEndOfLine :: Word8 -> Bool

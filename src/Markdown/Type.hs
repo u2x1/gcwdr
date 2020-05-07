@@ -22,4 +22,4 @@ data MDElem = Header              Int ByteString
             | FootnoteRef         ByteString [MDElem]
             | FootnoteRefs        [MDElem]
             | HorizontalRule
-  deriving (Show)
+  deriving (Show, Eq)

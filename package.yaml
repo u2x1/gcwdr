@@ -27,6 +27,8 @@ dependencies:
 - extra
 - network
 - html-entities
+- QuickCheck
+- hspec
 - stringsearch
 
 library:

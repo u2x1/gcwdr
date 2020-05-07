@@ -9,14 +9,15 @@ import Data.Attoparsec.ByteString
 import Template.Parser
 import Data.Maybe
 import Data.List.Extra as LE (takeWhileEnd, init, dropWhileEnd)
+import Data.ByteString.Search (breakAfter)
 
 parsePost :: FilePath -> IO (Maybe ObjectTree)
 parsePost path = do
   s <- BS.readFile path
   case parseOnly post s of
     Right (ObjNode x) -> do
-      let relPath = fromString $ takeWhileEnd (/='/') $ LE.init $ dropWhileEnd (/='.') path
-      pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf ("/post/" <> relPath <> "/")) <> x))
+      let relPath = snd $ breakAfter "content/" $ fromString $ LE.init $ dropWhileEnd (/='.') path
+      pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf (relPath <> "/")) <> x))
     _ -> pure Nothing
 
 convertTP :: ObjectTree -> ByteString -> ByteString

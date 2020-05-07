@@ -10,7 +10,7 @@ import Markdown.Type
 import Markdown.Parser
 
 convertMD :: ByteString -> ByteString
-convertMD s = case parseOnly (many' mdElem) (s <> "\n") of
+convertMD s = case parseOnly (many' mdElem) (s <> "\n\n") of
                 Right xs -> concat' (takeFn xs)
                 _ -> ""
 
@@ -33,7 +33,7 @@ convertMD' (Code x)               = tag "code" $ escapeHTML x
 convertMD' (CodeBlock x)          = tag' "pre" $ tag "code" $ escapeHTML x
 convertMD' (Footnote x)           = propTag "sup" [("id", Just ("fnref:" <> x))] $ propTag "a" [("href", Just ("#fn:" <> x))] x
 convertMD' (FootnoteRef x xs)     = propTag "li" [("id", Just ("fn:" <> x))] $ concat' xs
-convertMD' (FootnoteRefs xs)      = propTag "div" [("id", Just "footnotes")] $ tag'' "ol" $ concat' xs
+convertMD' (FootnoteRefs xs)      = propTag "div" [("id", Just "footnotes")] $ ("<hr/>" <>) $ tag'' "ol" $ concat' xs
 
 concat' :: [MDElem] -> ByteString
 concat' = concat'' . (convertMD' <$>)
@@ -78,8 +78,10 @@ escapeHTML x = pack $ mconcat $ escapeWord8 <$> unpack x
     escapeWord8 y = [y]
 
 takeFn :: [MDElem] -> [MDElem]
-takeFn xs = let eFns = takeFn' xs in
-                rights eFns <> pure (FootnoteRefs (lefts eFns))
-  where takeFn' = foldr (\a b -> case a of
-                                   FootnoteRef _ _ -> (Left a) : b
-                                   _ -> Right a  : b) []
+takeFn xs =
+  let fns = foldr (\a b -> case a of
+                              FootnoteRef _ _ -> (Left a) : b
+                              _ -> Right a : b) [] xs in
+  case lefts fns of
+              [] -> rights fns
+              lFns -> rights fns <> pure (FootnoteRefs lFns)

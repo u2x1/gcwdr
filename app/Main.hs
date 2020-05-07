@@ -12,7 +12,7 @@ import Data.ByteString.UTF8 (toString)
 
 main :: IO ()
 main = do
-  let root = "./test-data/"
+  let root = "./"
   trans root
   putStrLn "Web preview is running under http://localhost:4000."
   runTCPServer Nothing "4000" (showHtml (root <> "public"))
