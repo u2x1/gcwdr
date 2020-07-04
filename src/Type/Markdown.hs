@@ -1,4 +1,4 @@
-module Markdown.Type where
+module Type.Markdown where
 
 import Data.ByteString
 

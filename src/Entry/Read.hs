@@ -1,20 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Entry.Read where
 
-import Data.ByteString as BS (readFile, ByteString, writeFile)
-import Data.ByteString.UTF8 as UTF8 (fromString)
-import Control.Exception (catch, SomeException)
-import Data.Map.Lazy as M (singleton, fromList, Map, (!))
+import System.Directory
+import System.IO.Error              (isDoesNotExistError)
+import Data.ByteString      as BS   (readFile, ByteString, writeFile)
+import Data.ByteString.UTF8 as UTF8 (fromString, toString)
+import Data.Map.Lazy        as M    (singleton, fromList, Map, (!))
 import Data.Foldable
 import Data.Ord
-import Template.Convert
-import Data.List.Extra
-import System.Directory
-import Template.Type
+import Data.List.Extra              (nub, isSuffixOf, isPrefixOf, takeWhileEnd, dropWhileEnd, sortOn)
 import Data.Maybe
-import Data.ByteString.UTF8 (toString)
-import Control.Monad (filterM)
 import Data.Time
+import Control.Monad                (filterM, guard)
+import Control.Exception            (catchJust)
+
+import Data.Template
+import Type.Template
 
 trans :: FilePath -> IO ()
 trans root' = do
@@ -56,26 +57,22 @@ trans root' = do
   --- Convert index.
   let categories = nub $ getCategory <$> postObjs
       cates = fmap (\x -> mconcat [ M.singleton "cateName" (ObjLeaf x)
-                                  , M.singleton "post" $ toNodeList (filter ((x==) .getCategory) postObjs)]) categories
+                                  , M.singleton "post" $ toNodeList (filter ((== x) .getCategory) postObjs)]) categories
   indexHtml <- do
     let indexObjTree = addGlb $ ObjNode $ mconcat [ M.singleton "post" $ toNodeList postObjs
                                                   , M.singleton "categories" (ObjListNode cates)]
     convertTP indexObjTree <$> BS.readFile (root <> "theme/layout/index.html")
 
-
   -- Remove out-dated public dir.
-  ext <- doesDirectoryExist rootPublic
-  _ <- if ext then removeDirectoryRecursive (root <> "public") else pure ()
+  _ <- removeDir rootPublic
 
   -- Copy static files.
-  copyStatics root "theme/static" statics
-  copyStatics root "content/static" cStatics
+  copyFiles root "theme/static"   statics
+  copyFiles root "content/static" cStatics
 
   -- Generate htmls.
   BS.writeFile (rootPublic <> "index.html") indexHtml  -- Index
-  gnrtHtmls rootPublic id postHtmls  -- Posts
-  gnrtHtmls rootPublic id pageHtmls -- Pages
-    where getPagePath root x = drop (length (root <> x)) . init . takeWhileEnd (/= '.')
+  gnrtHtmls rootPublic id (postHtmls <> pageHtmls)     -- Posts and pages
 
 gnrtHtmls :: String -> (String -> String) -> [(String, ByteString)] -> IO ()
 gnrtHtmls rootPublic predicate =
@@ -84,22 +81,45 @@ gnrtHtmls rootPublic predicate =
     _ <- createDirectoryIfMissing True htmlPath
     BS.writeFile (htmlPath <> "/index.html") mdHtml)
 
-copyStatics root path =
-  traverse_ (\sPath ->
-    let filePath = (((root <> "public") <>) . drop (length (root <> path))) sPath
-        copyFunc = copyFile sPath filePath
-        cr8Dir = createDirectoryIfMissing True (dropWhileEnd (/='/') filePath) in
-    catch copyFunc ((\_ -> cr8Dir >> copyFunc) :: SomeException -> IO ()))
+copyFiles :: FilePath -> FilePath -> [FilePath] -> IO ()
+copyFiles root prefix2Remove =
+  traverse_ (\source -> copyFile' source (getTarget source))
+  where
+    copyFile' source target = catchJust (guard . isDoesNotExistError)
+                                        (copyFile source target)
+                                        (\_ -> cr8Dir target >> (copyFile source target))
+    getTarget = (((root <> "public") <>) . drop (length (root <> prefix2Remove)))
+    cr8Dir path = createDirectoryIfMissing True (dropWhileEnd (/='/') path)
 
 getAllFiles :: FilePath -> IO [FilePath]
 getAllFiles root' = do
+  -- Prevent it from walking into "..", "." dirs
+  contents <- filter (not . (isPrefixOf ".")) <$> getDirectoryContents root'
   let root = if last root' == '/' then root' else root' <> "/"
-  roots' <- filter (not . ("." `isPrefixOf`)) <$> getDirectoryContents root
-  let roots = (root <>) <$> roots'
-  dirs <- filterM doesDirectoryExist roots
-  files <- filterM doesFileExist roots
-  filesInDirs <- if null dirs then pure [] else mconcat <$> traverse getAllFiles dirs
-  return (files <> filesInDirs)
+      filesAndDirs = (root <>) <$> contents
+
+  dirs <- filterM doesDirectoryExist filesAndDirs
+  subFiles <- if null dirs then pure [] else mconcat <$> traverse getAllFiles dirs
+
+  let files = filter (not . (`elem` dirs)) filesAndDirs
+  return (files <> subFiles)
+
+-- Remove anything except filename started with "." like ".git"
+removeDir :: FilePath -> IO ()
+removeDir root' = do
+  ext <- doesDirectoryExist root'
+  if ext
+     then do
+          contents <- filter (not . (isPrefixOf ".")) <$> getDirectoryContents root'
+          let root = if last root' == '/' then root' else root' <> "/"
+              filesAndDirs = (root <>) <$> contents
+          dirs <- filterM doesDirectoryExist filesAndDirs
+          let files = filter (not . (`elem` dirs)) filesAndDirs
+          traverse_ removeDirectoryRecursive dirs
+          traverse_ removeFile files
+     else pure ()
+
+
 
 addListLayer :: ByteString -> ObjectTree -> ObjectTree
 addListLayer str ot = ObjNode (M.singleton str ot)
@@ -107,17 +127,16 @@ addListLayer str ot = ObjNode (M.singleton str ot)
 addLayer :: ByteString -> Map ByteString ObjectTree -> ObjectTree -> ObjectTree
 addLayer str glbRes ot = ObjNode (M.singleton str ot <> glbRes)
 
-
 getLayoutFile :: FilePath -> ObjectTree -> Maybe FilePath
 getLayoutFile root x = case getNode "this" x >>= getLeaf "template" of
-                    Just (ObjLeaf t) -> Just (root <> "theme/layout/" <> toString t <> ".html")
-                    _ -> Nothing
+                         Just (ObjLeaf t) -> Just (root <> "theme/layout/" <> toString t <> ".html")
+                         _ -> Nothing
 
 getDate :: ObjectTree -> UTCTime
 getDate (ObjNode x) =
   case x ! "date" of
     ObjLeaf x' -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (toString x') :: UTCTime
-    _ -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" "2000-01-01" :: UTCTime
+    _          -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" "2000-01-01" :: UTCTime
 getDate _ = parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" "2000-01-01" :: UTCTime
 
 getCategory :: ObjectTree -> ByteString

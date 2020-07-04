@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a82550a96837b24281894b45e4d804c3f8ad423a9d7c0f6ba1d647cbd2f9a791
+-- hash: 0bb2516c95330086414e9d03147df1345b6491d854075e32ac0c32bb84671c9b
 
 name:           gcwdr
 version:        0.1.0.0
@@ -24,13 +24,16 @@ source-repository head
 
 library
   exposed-modules:
+      Data.Markdown
+      Data.Template
       Entry.Read
-      Markdown.Convert
-      Markdown.Parser
-      Markdown.Type
-      Template.Convert
-      Template.Parser
-      Template.Type
+      Module.Encrypt
+      Parser.Markdown
+      Parser.Template
+      Type.Markdown
+      Type.Template
+      Utils.Git
+      Utils.Server
   other-modules:
       Paths_gcwdr
   hs-source-dirs:
@@ -46,6 +49,7 @@ library
     , hspec
     , html-entities
     , network
+    , process
     , stringsearch
     , time
     , utf8-string
@@ -71,6 +75,7 @@ executable gcwdr-exe
     , hspec
     , html-entities
     , network
+    , process
     , stringsearch
     , time
     , utf8-string
@@ -98,6 +103,7 @@ test-suite gcwdr-test
     , hspec
     , html-entities
     , network
+    , process
     , stringsearch
     , time
     , utf8-string

@@ -1,15 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Template.Convert where
+module Data.Template where
 
-import Template.Type
-import Data.Map.Lazy as M
-import Data.ByteString as BS (ByteString, readFile, init, last)
-import Data.ByteString.UTF8 (fromString)
+import Data.Map.Lazy              as M
+import Data.ByteString            as BS (ByteString, readFile, init, last)
+import Data.ByteString.UTF8             (fromString)
+import Data.ByteString.Search           (breakAfter)
 import Data.Attoparsec.ByteString
-import Template.Parser
 import Data.Maybe
-import Data.List.Extra as LE (takeWhileEnd, init, dropWhileEnd)
-import Data.ByteString.Search (breakAfter)
+import Data.List.Extra            as LE (init, dropWhileEnd)
+
+import Type.Template
+import Parser.Template
 
 parsePost :: FilePath -> IO (Maybe ObjectTree)
 parsePost path = do

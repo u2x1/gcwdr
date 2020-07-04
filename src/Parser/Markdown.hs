@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Markdown.Parser where
+module Parser.Markdown where
 
-import Data.Attoparsec.ByteString as APB
-import Data.Attoparsec.Combinator
-import Data.ByteString.UTF8 (fromString)
-import Data.ByteString as BS (ByteString, pack, singleton)
-import qualified Data.ByteString as BS (last)
-import Data.Functor
-import Data.Word8
-import Control.Applicative
-import Data.Map.Lazy as M
-import Markdown.Type
-import Template.Type
+import           Data.Attoparsec.ByteString as APB
+import           Data.Attoparsec.Combinator
+import           Data.ByteString.UTF8             (fromString)
+import           Data.ByteString            as BS (ByteString, pack, singleton)
+import qualified Data.ByteString            as BS (last)
+import           Data.Word8
+import           Control.Applicative
+import           Data.Map.Lazy              as M
+
+import           Type.Markdown
+import           Type.Template
 
 metaData :: Parser (Map ByteString ObjectTree)
 metaData = do
@@ -197,7 +197,7 @@ footnoteRef = do
       s <- lookAhead anyWord8
       if s == 32
          then do
-           many' (satisfy isSpace)
+           _ <- many' (satisfy isSpace)
            pure <$> mdElem
          else fail ""
 

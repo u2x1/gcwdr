@@ -1,49 +1,62 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Control.Monad
-import Control.Concurrent
-import Entry.Read
-import Network.Socket
-import qualified Control.Exception as E
-import qualified Data.ByteString as S
-import Network.Socket.ByteString (recv, sendAll)
-import Data.ByteString.UTF8 (toString)
+import           System.Environment        (getArgs)
+import           Entry.Read                (trans)
+import           Utils.Server              (runBlogPreview)
+import           Utils.Git                 (deploy, commit)
+import           Data.Maybe                (catMaybes)
+import           Data.Foldable             (traverse_)
 
 main :: IO ()
 main = do
-  let root = "./"
-  trans root
-  putStrLn "Web preview is running under http://localhost:4000."
-  runTCPServer Nothing "4000" (showHtml (root <> "public"))
-  where
-    showHtml path s = do
-        msg <- recv s 1024
-        unless (S.null msg) $
-          if S.take 3 msg == "GET"
-             then do
-               resp <- getFile path (toString $ S.takeWhile (/= 32) (S.drop 4 msg))
-               sendAll s ("HTTP/1.1 200 OK\n\n" <> resp)
-             else sendAll s "HTTP/1.1 200 OK\n\n"
+  let root = "."
+  args <- getArgs
+  let cmds = parseArgs args
 
-getFile :: String -> String -> IO S.ByteString
-getFile root path
-  | last path == '/' = S.readFile (root <> path <> "index.html")
-  | otherwise = S.readFile (root <> path)
+  let runFlag x = case x of
+                    PreGenerate -> trans root
+  traverse_ runFlag (takeFlags cmds)
 
-runTCPServer :: Maybe HostName -> ServiceName -> (Socket -> IO a) -> IO a
-runTCPServer host port server = withSocketsDo $ do
-  addr <- resolve
-  E.bracket (open addr) close loop
+  case cmds of
+    Right (Command Generate     _) -> trans root
+    Right (Command Server       _) -> runBlogPreview (root <> "/public/")
+    Right (Command (Commit msg) _) -> commit msg
+    Right (Command Deploy       _) -> deploy
+    Right (Command Help         _) -> putStrLn usage
+
+    Left err -> putStrLn ("Error: " <> err) >> putStrLn usage
   where
-    resolve = head <$> getAddrInfo (Just defaultHints) host (Just port)
-    open addr = do
-      sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
-      setSocketOption sock ReuseAddr 1
-      withFdSocket sock setCloseOnExecIfNeeded
-      bind sock $ addrAddress addr
-      listen sock 1024
-      return sock
-    loop sock = forever $ do
-      (conn, _peer) <- accept sock
-      void $ forkFinally (server conn) (const $ gracefulClose conn 5000)
+    takeFlags (Right (Command _ xs)) = xs
+    takeFlags _ = []
+
+usage :: String
+usage = "usage: ./gcwdr <command>\n\
+        \commands:\n\
+        \  generate(g):\tGenerate static html files.\n\
+        \  server(s):\tStart local server with a simple TCP socket at http://localhost:4000.\n\
+        \  commit(c) <Message>:\tCommit to git.\n\
+        \  help(h):\tShow this help text.\n\
+        \  deploy(d):\tPush the static html files to Github."
+
+data Command = Command Mode [Flag]
+data Mode = Generate | Server | Commit String | Deploy | Help
+data Flag = PreGenerate
+
+parseArgs :: [String] -> Either String Command
+parseArgs args = Command <$> (parseMode $ filter ((/= '-').head) args) <*> (Right $ parseFlag $ filter ((== '-').head) args)
+  where
+    parseMode [] = Left "Empty command."
+    parseMode (x:xs) = case x of
+                          "generate" -> Right $ Generate
+                          "server"   -> Right $ Server
+                          "deploy"   -> Right $ Deploy
+                          "commit"   -> if null xs then Left "Commit message can not be empty." else Right $ Commit (head xs)
+                          "help"     -> Right $ Help
+                          "h"        -> Right $ Help
+                          _          -> Left "Unknown command."
+
+    parseFlag xs = catMaybes $ map getFlag xs
+    getFlag x = case tail x of
+                  "g" -> Just PreGenerate
+                  _   -> Nothing

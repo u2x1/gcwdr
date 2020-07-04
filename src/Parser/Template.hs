@@ -1,14 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Template.Parser where
+module Parser.Template where
 
 import Data.Attoparsec.ByteString
-import Template.Type
-import Markdown.Parser
-import Markdown.Convert
 import Control.Applicative
 import Data.ByteString as BS (pack, singleton)
 import Data.Map.Lazy as M
 import Data.Maybe
+
+import Type.Template
+import Data.Markdown
+import Parser.Markdown
 
 post :: Parser ObjectTree
 post = do

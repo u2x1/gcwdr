@@ -30,6 +30,7 @@ dependencies:
 - QuickCheck
 - hspec
 - stringsearch
+- process
 
 library:
   source-dirs: src

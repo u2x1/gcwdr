@@ -1,13 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Markdown.Convert where
+module Data.Markdown where
 
 import Data.Attoparsec.ByteString
-import Data.ByteString as BS (ByteString, init, last, pack, unpack)
-import Data.ByteString.UTF8 (fromString)
-import Data.List (intersperse)
-import Data.Either (rights, lefts)
-import Markdown.Type
-import Markdown.Parser
+import Data.ByteString            as BS (ByteString, init, last, pack, unpack)
+import Data.ByteString.UTF8             (fromString)
+import Data.List                        (intersperse)
+import Data.Either                      (rights, lefts)
+
+import Type.Markdown
+import Parser.Markdown
 
 convertMD :: ByteString -> ByteString
 convertMD s = case parseOnly (many' mdElem) (s <> "\n\n") of
@@ -27,7 +28,7 @@ convertMD' (Italic x)             = tag "em" x
 convertMD' (Bold x)               = tag "strong" x
 convertMD' (BoldAndItalic x)      = tag "strong" $ tag "em" x
 convertMD' (Strikethrough x)      = tag "s" x
-convertMD' (Link text url title)  = propTag "a" [("href", Just url), ("title", title)] (concat' text)
+convertMD' (Link text url title)  = propTag'' "a" [("href", Just url), ("title", title)] (concat' text)
 convertMD' (Image text url title) = propTag' "img" [("src", Just url), ("alt", Just text), ("title", title)]
 convertMD' (Code x)               = tag "code" $ escapeHTML x
 convertMD' (CodeBlock x)          = tag' "pre" $ tag "code" $ escapeHTML x
@@ -63,6 +64,13 @@ propTag tagName prop x = mconcat ["<", tagName, " ", mconcat.intersperse " " $ m
 -- | <x xx="xxx"/>
 propTag' :: ByteString -> [(ByteString, Maybe ByteString)] -> ByteString
 propTag' tagName prop = mconcat ["<", tagName, " ", mconcat.intersperse " " $ makeProp <$> prop, "/>\n"]
+  where
+    makeProp (_, Nothing) = ""
+    makeProp (name, (Just value)) = mconcat [name, "=\"", value, "\""]
+
+-- | <x xx="xx">z</x>
+propTag'' :: ByteString -> [(ByteString, Maybe ByteString)] -> ByteString -> ByteString
+propTag'' tagName prop x = mconcat ["<", tagName, " ", mconcat.intersperse " " $ makeProp <$> prop, ">", x, "</", tagName, ">"]
   where
     makeProp (_, Nothing) = ""
     makeProp (name, (Just value)) = mconcat [name, "=\"", value, "\""]
