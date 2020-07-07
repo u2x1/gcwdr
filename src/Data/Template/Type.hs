@@ -1,4 +1,4 @@
-module Type.Template where
+module Data.Template.Type where
 
 import Data.ByteString
 import Data.Map.Lazy

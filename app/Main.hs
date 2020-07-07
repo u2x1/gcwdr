@@ -2,7 +2,7 @@
 module Main where
 
 import           System.Environment        (getArgs)
-import           Entry.Read                (trans)
+import           Entry.Read                (gnrtPublic)
 import           Utils.Server              (runBlogPreview)
 import           Utils.Git                 (deploy, commit)
 import           Data.Maybe                (catMaybes)
@@ -15,11 +15,12 @@ main = do
   let cmds = parseArgs args
 
   let runFlag x = case x of
-                    PreGenerate -> trans root
+                    PreGenerate -> gnrtPublic root
+
   traverse_ runFlag (takeFlags cmds)
 
   case cmds of
-    Right (Command Generate     _) -> trans root
+    Right (Command Generate     _) -> gnrtPublic root
     Right (Command Server       _) -> runBlogPreview (root <> "/public/")
     Right (Command (Commit msg) _) -> commit msg
     Right (Command Deploy       _) -> deploy

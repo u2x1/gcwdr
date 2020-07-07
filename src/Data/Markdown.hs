@@ -7,8 +7,8 @@ import Data.ByteString.UTF8             (fromString)
 import Data.List                        (intersperse)
 import Data.Either                      (rights, lefts)
 
-import Type.Markdown
-import Parser.Markdown
+import Data.Markdown.Type
+import Data.Markdown.Parser
 
 convertMD :: ByteString -> ByteString
 convertMD s = case parseOnly (many' mdElem) (s <> "\n\n") of
@@ -85,6 +85,7 @@ escapeHTML x = pack $ mconcat $ escapeWord8 <$> unpack x
     escapeWord8 39 = unpack "&#39;"
     escapeWord8 y = [y]
 
+-- Make footnotes be suffixes
 takeFn :: [MDElem] -> [MDElem]
 takeFn xs =
   let fns = foldr (\a b -> case a of

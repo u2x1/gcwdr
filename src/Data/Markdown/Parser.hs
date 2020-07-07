@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Parser.Markdown where
+module Data.Markdown.Parser where
 
 import           Data.Attoparsec.ByteString as APB
 import           Data.Attoparsec.Combinator
@@ -10,8 +10,8 @@ import           Data.Word8
 import           Control.Applicative
 import           Data.Map.Lazy              as M
 
-import           Type.Markdown
-import           Type.Template
+import           Data.Markdown.Type
+import           Data.Template.Type
 
 metaData :: Parser (Map ByteString ObjectTree)
 metaData = do
