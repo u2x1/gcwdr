@@ -3,6 +3,11 @@ module Utils.SitemapGenerator where
 
 import Data.ByteString
 import Data.ByteString.UTF8 (fromString)
+import Data.Time (getCurrentTime, defaultTimeLocale, formatTime)
+import Data.Maybe (catMaybes)
+
+import Data.Template
+import Data.Template.Type
 
 packSitemap :: ByteString -> [URLInfo] -> ByteString
 packSitemap site infos = "\
@@ -24,3 +29,17 @@ data URLInfo = URLInfo {
   , lastmod  :: ByteString
   , priority :: Int
 } deriving (Show)
+
+getSitemap :: ByteString -> [ObjectTree] -> IO ByteString
+getSitemap site objs = do
+  let infos = catMaybes $ getUrlInfo <$> objs
+  curTime <- (fromString . (formatTime defaultTimeLocale "%Y-%m-%d")) <$> getCurrentTime
+  let siteUrl = URLInfo site curTime 8
+  let sitemap = packSitemap site (siteUrl : infos)
+  pure sitemap
+
+getUrlInfo :: ObjectTree -> Maybe URLInfo
+getUrlInfo obj = URLInfo <$> l <*> m <*> p
+  where l = getNode "this" obj >>= getLeaf' "relLink"
+        m = fromString <$> (fmap (formatTime defaultTimeLocale "%Y-%m-%d") (getDate =<< (getNode "this" obj)))
+        p = Just 6

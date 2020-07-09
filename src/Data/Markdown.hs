@@ -1,14 +1,56 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Markdown where
 
+import Control.Applicative (many)
 import Data.Attoparsec.ByteString
-import Data.ByteString            as BS (ByteString, init, last, pack, unpack)
+import Data.List.Extra            as LE (init, dropWhileEnd)
+import Data.ByteString.Search           (breakAfter)
+import Data.ByteString            as BS (ByteString, init, last, pack, unpack, readFile)
 import Data.ByteString.UTF8             (fromString)
 import Data.List                        (intersperse)
 import Data.Either                      (rights, lefts)
+import Data.Map.Lazy              as M  (singleton, (!?), Map, fromList)
+import Data.Maybe
 
 import Data.Markdown.Type
 import Data.Markdown.Parser
+import Data.Template.Type
+
+parsePost :: FilePath -> IO (Maybe ObjectTree)
+parsePost path = do
+  s <- BS.readFile path
+  case toObjectTree <$> parseOnly post s of
+    Right (ObjNode x) -> do
+      let relPath = snd $ breakAfter "content/" $ fromString $ LE.init $ dropWhileEnd (/='.') path
+      pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf (relPath <> "/")) <> x))
+    _ -> pure Nothing
+
+
+type MetaData = Map ByteString ObjectTree
+data Post = Post MetaData ByteString
+
+instance ToObjectTree Post where
+  toObjectTree (Post meta content) = ObjNode (meta <> M.singleton "content" (ObjLeaf $ convertMD content))
+
+post :: Parser Post
+post = do
+  meta' <- metaData
+  let meta = if isJust (meta' !? "template")
+                then meta'
+                else meta' <> M.singleton "template" (ObjLeaf "post")  -- default template to "post"
+  postContent <- takeByteString
+  return $ Post meta (convertMD postContent)
+
+metaData :: Parser MetaData
+metaData = do
+  _ <- many (string "---\n")
+  els <- manyTill el (string "---")
+  _ <- many (word8 10)
+  return (ObjLeaf <$> fromList els)
+  where el = do
+          obj <- takeTill (== 58) <* word8 58 <* many (word8 32)
+          text <- takeTill isEndOfLine <* satisfy isEndOfLine
+          return (obj, text)
 
 convertMD :: ByteString -> ByteString
 convertMD s = case parseOnly (many' mdElem) (s <> "\n\n") of

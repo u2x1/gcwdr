@@ -5,17 +5,40 @@ import System.Directory
 import System.IO.Error              (isDoesNotExistError)
 import Data.ByteString      as BS   (readFile, ByteString, writeFile)
 import Data.ByteString.UTF8 as UTF8 (fromString, toString)
+import Data.Ord                     (Down(Down))
+import Data.Maybe                   (catMaybes)
 import Data.Map.Lazy        as M    (singleton, fromList, Map)
-import Data.Foldable
-import Data.Ord
+import Data.Foldable                (traverse_)
 import Data.List.Extra              (nub, isSuffixOf, isPrefixOf, takeWhileEnd, dropWhileEnd, sortOn)
-import Data.Maybe
 import Control.Monad                (filterM, guard)
 import Control.Exception            (catchJust)
 
+import qualified Toml
+
+import Data.Markdown                (parsePost)
 import Data.Template
 import Data.Template.Type
+import Data.Config
+import Data.Config.Type
+import Utils.Logging
 import Utils.SitemapGenerator
+
+getGlbRes :: FilePath -> [FilePath] -> IO (Map ByteString ObjectTree)
+getGlbRes root allFiles = do
+  let partialsRes = filter (isPrefixOf (root <> "theme/layout/partial")) allFiles
+  partials <- M.singleton "partials" . ObjNode <$> getPartials partialsRes
+  config <- M.singleton "config" . toObjectTree <$> parseConfig "config.toml"
+  pure $ M.singleton "global" $ ObjNode (config <> partials)
+  where getPartials ps = do
+         rawPartials <- traverse BS.readFile ps
+         pure $ fromList $ zip (fmap (fromString . takeWhileEnd (/= '/')) ps) (ObjLeaf <$> rawPartials)
+
+parseConfig :: FilePath -> IO Config
+parseConfig path = do
+  tomlRes <- Toml.decodeFileEither configCodec path
+  case tomlRes of
+    Left errs -> logErrAndTerminate "Parsing config" (show errs)
+    Right config -> pure config
 
 gnrtPublic :: FilePath -> IO ()
 gnrtPublic root' = do
@@ -26,20 +49,19 @@ gnrtPublic root' = do
       pages = filter (\p -> (root <> "content/page/") `isPrefixOf` p && ".md" `isSuffixOf` p) allFiles
       cStatics = filter (isPrefixOf (root <> "content/static/")) allFiles
       statics  = filter (isPrefixOf (root <> "theme/static/")) allFiles
-      partials = filter (isPrefixOf (root <> "theme/layout/partial")) allFiles
 
-  glbRes <- getGlbRes partials
-  let glbObjNode = (addLayer "this" glbRes) . ObjNode
+  glbRes <- getGlbRes root allFiles
 
   postObjs <- sortOn (Down . getDate) . catMaybes <$> traverse parsePost posts
   pageObjs <- catMaybes <$> traverse parsePost pages
 
   --- Convert index.
   let cates = fmap (\x -> mconcat [ M.singleton "cateName" (ObjLeaf x)
-                                  , M.singleton "posts" (toNodeList (filter ((== x) .getCategory) postObjs))]) (nub $ getCategory <$> postObjs)
+                                  , M.singleton "posts" (toNodeList (filter ((== Just x).getCategory) postObjs))]) $
+                   catMaybes (nub $ getCategory <$> postObjs)
   indexHtml <- do
-    let indexObjTree = glbObjNode $ mconcat [ M.singleton "posts"       (toNodeList postObjs)
-                                            , M.singleton "categories"  (ObjListNode cates)]
+    let indexObjTree = addGlb glbRes $ ObjNode $ mconcat [ M.singleton "posts"       (toNodeList postObjs)
+                                                         , M.singleton "categories"  (ObjListNode cates)]
     convertTP indexObjTree <$> BS.readFile (root <> "theme/layout/index.html")
 
   -- Remove out-dated public dir.
@@ -49,40 +71,25 @@ gnrtPublic root' = do
   copyFiles root "theme/static"   statics
   copyFiles root "content/static" cStatics
 
-  let articles = (addLayer "this" glbRes) <$> (postObjs <> pageObjs)
+  let articles = (addGlb glbRes) <$> (postObjs <> pageObjs)
   -- Generate htmls.
   BS.writeFile (root <> "public/index.html") indexHtml  -- Index
-  gnrtHtmls root glbRes articles          -- Posts and pages
+  gnrtHtmls root articles          -- Posts and pages
   gnrtSitemap root "" articles
 
-  where
-    getGlbRes partials = do
-      -- Get partial files.
-      rawPartials <- traverse BS.readFile partials
-      let partialMap = fromList $ zip (fmap (fromString . takeWhileEnd (/= '/')) partials) (ObjLeaf <$> rawPartials)
-      pure (singletonObjNode ["global", "partial"] partialMap)
 
-gnrtHtmls :: FilePath -> Map ByteString ObjectTree -> [ObjectTree] -> IO ()
-gnrtHtmls root glbRes =
-  traverse_ ((\x -> do
+gnrtHtmls :: FilePath -> [ObjectTree] -> IO ()
+gnrtHtmls root =
+  traverse_ (\x -> do
     html <- convertTP x <$> BS.readFile (getLayoutFile root x)
-    let relLink = ((<>) (root <> "public/")) $ case getNode "this" x >>= getLeaf' "relLink" of
-                                      Just x' -> toString x'
-                                      _ -> "/404.html"
-    _ <- createDirectoryIfMissing True relLink
-    BS.writeFile (relLink <> "/index.html") html))
+    let relLink = ((<>) (root <> "public/")) . toString <$> (getNode "this" x >>= getLeaf' "relLink")
+    traverse_ (createDirectoryIfMissing True) relLink
+    traverse_ (`BS.writeFile` html) $ (<> "/index.html") <$> relLink)
 
 gnrtSitemap :: FilePath -> ByteString -> [ObjectTree] -> IO ()
 gnrtSitemap root site objs = do
-  let infos = catMaybes $ getUrlInfo <$> objs
-  let sitemap = packSitemap site infos
+  sitemap <- getSitemap site objs
   BS.writeFile (root <> "public/sitemap.xml") sitemap
-
-getUrlInfo :: ObjectTree -> Maybe URLInfo
-getUrlInfo obj = URLInfo <$> l <*> m <*> p
-  where l = getNode "this" obj >>= getLeaf' "relLink"
-        m = getNode "this" obj >>= getLeaf' "date"
-        p = Just 6
 
 
 copyFiles :: FilePath -> FilePath -> [FilePath] -> IO ()
@@ -92,7 +99,7 @@ copyFiles root prefix2Remove =
     copyFile' source target = catchJust (guard . isDoesNotExistError)
                                         (copyFile source target)
                                         (\_ -> cr8Dir target >> (copyFile source target))
-    getTarget = (((root <> "public") <>) . drop (length (root <> prefix2Remove)))
+    getTarget = ((root <> "public") <>) . drop (length (root <> prefix2Remove))
     cr8Dir path = createDirectoryIfMissing True (dropWhileEnd (/='/') path)
 
 getAllFiles :: FilePath -> IO [FilePath]

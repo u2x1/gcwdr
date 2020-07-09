@@ -16,3 +16,6 @@ data ObjectTree = ObjNode (Map ByteString ObjectTree)
                 | ObjLeaf ByteString
                 | ObjListNode [Map ByteString ObjectTree]
   deriving (Show)
+
+class ToObjectTree a where
+  toObjectTree :: a -> ObjectTree

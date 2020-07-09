@@ -2,25 +2,14 @@
 module Data.Template where
 
 import Data.Map.Lazy              as M
-import Data.ByteString            as BS (ByteString, readFile, init, last)
-import Data.ByteString.UTF8             (fromString, toString)
-import Data.ByteString.Search           (breakAfter)
+import Data.ByteString            as BS (ByteString, init, last)
+import Data.ByteString.UTF8             (toString)
 import Data.Attoparsec.ByteString
 import Data.Maybe
-import Data.List.Extra            as LE (init, dropWhileEnd)
 import Data.Time
 
 import Data.Template.Type
 import Data.Template.Parser
-
-parsePost :: FilePath -> IO (Maybe ObjectTree)
-parsePost path = do
-  s <- BS.readFile path
-  case parseOnly post s of
-    Right (ObjNode x) -> do
-      let relPath = snd $ breakAfter "content/" $ fromString $ LE.init $ dropWhileEnd (/='.') path
-      pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf (relPath <> "/")) <> x))
-    _ -> pure Nothing
 
 convertTP :: ObjectTree -> ByteString -> ByteString
 convertTP objTree s = case parseOnly (many' stmt) (s <> "\n") of
@@ -48,7 +37,7 @@ convertTP' objs s@PartialStmt {} = convertPartial objs s
 
 convertPartial :: ObjectTree -> Stmt -> Maybe ByteString
 convertPartial objs (PartialStmt partPath) =
-  case getNode "global" objs >>= getNode "partial" >>= getLeaf' partPath of
+  case getNode "global" objs >>= getNode "partials" >>= getLeaf' partPath of
     Just partFile -> Just $ convertTP objs partFile
     _ -> Nothing
 convertPartial _ _ = Nothing
@@ -86,14 +75,14 @@ convertDot _ _ = Nothing
 
 
 getNode :: ByteString -> ObjectTree -> Maybe ObjectTree
-getNode key (ObjNode objs) = case objs ! key of
-                               x@(ObjNode _) -> Just x
+getNode key (ObjNode objs) = case objs !? key of
+                               Just x@(ObjNode _) -> Just x
                                _ -> Nothing
 getNode _ _ = Nothing
 
 getLeaf :: ByteString -> ObjectTree -> Maybe ObjectTree
-getLeaf key (ObjNode objs) = case objs ! key of
-                               x@(ObjLeaf _) -> Just x
+getLeaf key (ObjNode objs) = case objs !? key of
+                               Just x@(ObjLeaf _) -> Just x
                                _ -> Nothing
 getLeaf _ _ = Nothing
 
@@ -115,8 +104,8 @@ singletonObjNode key x = (go key) x
 addListLayer :: ByteString -> ObjectTree -> ObjectTree
 addListLayer str ot = ObjNode (M.singleton str ot)
 
-addLayer :: ByteString -> Map ByteString ObjectTree -> ObjectTree -> ObjectTree
-addLayer str glbRes ot = ObjNode (M.singleton str ot <> glbRes)
+addGlb :: Map ByteString ObjectTree -> ObjectTree-> ObjectTree
+addGlb glbRes x = ObjNode (M.singleton "this" x <> glbRes)
 
 toNodeList :: [ObjectTree] -> ObjectTree
 toNodeList = ObjListNode . fmap (\(ObjNode x) -> x)
@@ -126,15 +115,8 @@ getLayoutFile root x = case getNode "this" x >>= getLeaf' "template" of
                          Just t -> (root <> "theme/layout/" <> toString t <> ".html")
                          _ -> "theme/layout/nolayout.html"
 
-getDate :: ObjectTree -> UTCTime
-getDate (ObjNode x) =
-  case x !? "date" of
-    Just (ObjLeaf x') -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (toString x') :: UTCTime
-    _                 -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" "2000-01-01" :: UTCTime
-getDate _ = parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" "2000-01-01" :: UTCTime
+getDate :: ObjectTree -> Maybe UTCTime
+getDate obj = (\x -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (toString x) :: UTCTime) <$> (getLeaf' "date" obj)
 
-getCategory :: ObjectTree -> ByteString
-getCategory (ObjNode x) = case x !? "category" of
-                            Just (ObjLeaf x') -> x'
-                            _ -> "Uncategoried"
-getCategory _ = "Uncategoried"
+getCategory :: ObjectTree -> Maybe ByteString
+getCategory x = getLeaf' "category" x

@@ -1,15 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module SimpleSpec where
 
+import Data.ByteString
 import Data.Attoparsec.ByteString
-import Data.ByteString.Search as BS
-import Data.ByteString        as BS (ByteString)
-import Data.ByteString.Char8        (unlines)
 import Test.Hspec
-import Test.QuickCheck
-import Markdown.Parser
-import Markdown.Type
-import Markdown.Convert
+import Data.Markdown.Type
+import Data.Markdown.Parser
 import Prelude hiding (unlines)
 
 spec :: Spec
@@ -28,6 +24,11 @@ spec = do
         [ UnorderedList [ ListElem [PlainText "xyz"]
                         , ListElem [PlainText "zyx"]]])
 
+rtPara :: [MDElem] -> Either a [MDElem]
 rtPara x = Right [Paragrah x]
+
+rt :: b -> Either a b
 rt x = Right x
+
+parseMD :: ByteString -> Either String [MDElem]
 parseMD = parseOnly (many' mdElem) . (<>"\n")

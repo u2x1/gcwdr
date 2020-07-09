@@ -8,21 +8,8 @@ import           Data.ByteString            as BS (ByteString, pack, singleton)
 import qualified Data.ByteString            as BS (last)
 import           Data.Word8
 import           Control.Applicative
-import           Data.Map.Lazy              as M
 
 import           Data.Markdown.Type
-import           Data.Template.Type
-
-metaData :: Parser (Map ByteString ObjectTree)
-metaData = do
-  _ <- many (string "---\n")
-  els <- manyTill el (string "---")
-  _ <- many (word8 10)
-  return (ObjLeaf <$> fromList els)
-  where el = do
-          obj <- takeTill (== 58) <* word8 58 <* many (word8 32)
-          text <- takeTill isEndOfLine <* satisfy isEndOfLine
-          return (obj, text)
 
 mdElem :: Parser MDElem
 mdElem = footnoteRef <|> blockquotes <|> orderedList <|> unorderedList <|> codeBlock <|> header <|> hrztRule <|> para
@@ -204,8 +191,10 @@ footnoteRef = do
 isEndOfLine :: Word8 -> Bool
 isEndOfLine w = w == 10 || w == 13
 
+-- * or _
 isAstrOrUds :: Word8 -> Bool
 isAstrOrUds w = w == 95 || w == 42
 
+-- * or -
 isAstrOrDash :: Word8 -> Bool
 isAstrOrDash w = w == 42 || w == 43 || w == 45

@@ -34,7 +34,9 @@ packages:
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
-# extra-deps:
+extra-deps:
+  - tomland-1.3.0.0@sha256:441c70c7b15d64e3011eb77637d3d566bc1abd8ec7c401656e16a6c4edd31676,8607
+  - validation-selective-0.1.0.0@sha256:db12d924888dcf4ab31a1af74ce34ff68dfe07a2fead8688782fb37e62d8eca6,3702
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a

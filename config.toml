@@ -1,0 +1,10 @@
+title = "Nutr1t07's Blog"
+site = "https://nutr1t07.github.io/"
+
+[[menu]]
+name = "Index"
+loc  = "/index.html"
+
+[[menu]]
+name = "Friends"
+loc  = "/page/friends/"

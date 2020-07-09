@@ -3,7 +3,21 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: tomland-1.3.0.0@sha256:441c70c7b15d64e3011eb77637d3d566bc1abd8ec7c401656e16a6c4edd31676,8607
+    pantry-tree:
+      size: 6357
+      sha256: cf9f202221824aa16ebe5f4d523945842dc1b0c70aadf27a057a6f75cfe90a41
+  original:
+    hackage: tomland-1.3.0.0@sha256:441c70c7b15d64e3011eb77637d3d566bc1abd8ec7c401656e16a6c4edd31676,8607
+- completed:
+    hackage: validation-selective-0.1.0.0@sha256:db12d924888dcf4ab31a1af74ce34ff68dfe07a2fead8688782fb37e62d8eca6,3702
+    pantry-tree:
+      size: 696
+      sha256: d1ccc6330b4e6d055d928981fdd5f06f1d7cc44df563975cbe8aa7337e1e77d1
+  original:
+    hackage: validation-selective-0.1.0.0@sha256:db12d924888dcf4ab31a1af74ce34ff68dfe07a2fead8688782fb37e62d8eca6,3702
 snapshots:
 - completed:
     size: 496111

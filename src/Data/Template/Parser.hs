@@ -4,20 +4,8 @@ module Data.Template.Parser where
 import Data.Attoparsec.ByteString
 import Control.Applicative
 import Data.ByteString as BS (pack, singleton)
-import Data.Map.Lazy as M
-import Data.Maybe
 
 import Data.Template.Type
-import Data.Markdown
-import Data.Markdown.Parser
-
-post :: Parser ObjectTree
-post = do
-  meta' <- metaData
-  let meta = if isJust (meta' !? "template") then meta' else meta'
-                            <> M.singleton "template" (ObjLeaf "post")
-  postContent <- takeByteString
-  return $ ObjNode (meta <> M.singleton "content" (ObjLeaf $ convertMD postContent))
 
 stmt :: Parser Stmt
 stmt = foreachStmt <|> stmt' <|> raw

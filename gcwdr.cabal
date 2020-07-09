@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 51c64d66ad9b2fb480f11971617910a3db41946ee63ba04fc39d7af3b98216b6
+-- hash: 622e1c6765b64e2e5beedbcb44baeb66182a3b2f9c9aa400ea0c83fd8b98bf05
 
 name:           gcwdr
 version:        0.1.0.0
@@ -26,6 +26,8 @@ source-repository head
 
 library
   exposed-modules:
+      Data.Config
+      Data.Config.Type
       Data.Markdown
       Data.Markdown.Parser
       Data.Markdown.Type
@@ -35,6 +37,7 @@ library
       Entry.Read
       Module.Encrypt
       Utils.Git
+      Utils.Logging
       Utils.Server
       Utils.SitemapGenerator
   other-modules:
@@ -50,12 +53,14 @@ library
     , directory
     , extra
     , hspec
+    , hspec-discover
     , html-entities
     , network
     , process
     , stringsearch
+    , text
     , time
-    , tomland
+    , tomland >=1.3.0.0
     , utf8-string
     , word8
   default-language: Haskell2010
@@ -77,12 +82,14 @@ executable gcwdr-exe
     , extra
     , gcwdr
     , hspec
+    , hspec-discover
     , html-entities
     , network
     , process
     , stringsearch
+    , text
     , time
-    , tomland
+    , tomland >=1.3.0.0
     , utf8-string
     , word8
   default-language: Haskell2010
@@ -106,12 +113,14 @@ test-suite gcwdr-test
     , extra
     , gcwdr
     , hspec
+    , hspec-discover
     , html-entities
     , network
     , process
     , stringsearch
+    , text
     , time
-    , tomland
+    , tomland >=1.3.0.0
     , utf8-string
     , word8
   default-language: Haskell2010
