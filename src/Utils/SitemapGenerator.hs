@@ -34,7 +34,7 @@ getSitemap :: ByteString -> [ObjectTree] -> IO ByteString
 getSitemap site objs = do
   let infos = catMaybes $ getUrlInfo <$> objs
   curTime <- (fromString . (formatTime defaultTimeLocale "%Y-%m-%d")) <$> getCurrentTime
-  let siteUrl = URLInfo site curTime 8
+  let siteUrl = URLInfo "" curTime 8
   let sitemap = packSitemap site (siteUrl : infos)
   pure sitemap
 

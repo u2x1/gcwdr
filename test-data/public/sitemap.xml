@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
    <url>
-      <loc></loc>
+      <loc>https://nutr1t07.github.io/</loc>
       <lastmod>2020-07-09</lastmod>
       <priority>0.8</priority>
    </url>
    <url>
-      <loc>post/test/</loc>
+      <loc>https://nutr1t07.github.io/post/test/</loc>
       <lastmod>2020-04-26</lastmod>
       <priority>0.6</priority>
    </url>

@@ -51,6 +51,7 @@ gnrtPublic root' = do
       statics  = filter (isPrefixOf (root <> "theme/static/")) allFiles
 
   glbRes <- getGlbRes root allFiles
+  config <- parseConfig "config.toml"
 
   postObjs <- sortOn (Down . getDate) . catMaybes <$> traverse parsePost posts
   pageObjs <- catMaybes <$> traverse parsePost pages
@@ -75,7 +76,7 @@ gnrtPublic root' = do
   -- Generate htmls.
   BS.writeFile (root <> "public/index.html") indexHtml  -- Index
   gnrtHtmls root articles          -- Posts and pages
-  gnrtSitemap root "" articles
+  gnrtSitemap root (siteUrl config) articles
 
 
 gnrtHtmls :: FilePath -> [ObjectTree] -> IO ()

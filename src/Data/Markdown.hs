@@ -25,12 +25,12 @@ parsePost path = do
       pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf (relPath <> "/")) <> x))
     _ -> pure Nothing
 
-
 type MetaData = Map ByteString ObjectTree
 data Post = Post MetaData ByteString
+  deriving (Show)
 
 instance ToObjectTree Post where
-  toObjectTree (Post meta content) = ObjNode (meta <> M.singleton "content" (ObjLeaf $ convertMD content))
+  toObjectTree (Post meta content) = ObjNode (meta <> M.singleton "content" (ObjLeaf content))
 
 post :: Parser Post
 post = do

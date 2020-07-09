@@ -3,6 +3,7 @@ module Data.Template.Parser where
 
 import Data.Attoparsec.ByteString
 import Control.Applicative
+import Data.Word8
 import Data.ByteString as BS (pack, singleton)
 
 import Data.Template.Type
@@ -35,11 +36,22 @@ foreachStmt = do
   _ <- string "[- foreach" *> many (word8 32)
   placeholder <- takeTill (==32)
   _ <- many (word8 32) *> string "in" *> many (word8 32)
-  obj <- dotStmt <* many (word8 32) <* string "-]"
+  obj <- dotStmt <* many (word8 32) <* string "-]" <* many (satisfy isEndOfLine)
   inSpaceStmt <- manyTill stmt (string "[- end -]")
   return (ForeachStmt placeholder obj inSpaceStmt)
 
 raw :: Parser Stmt
 raw = do
-  w <- anyWord8
-  Raw . (BS.singleton w <>) <$> takeTill (== 91)
+  w <- anyWord8 -- always ignore first character
+  Raw . (BS.singleton w <>) <$> takeTill (== 91) -- take till meeting '['
+
+isEndOfLine :: Word8 -> Bool
+isEndOfLine w = w == 10 || w == 13
+
+-- * or _
+isAstrOrUds :: Word8 -> Bool
+isAstrOrUds w = w == 95 || w == 42
+
+-- * or -
+isAstrOrDash :: Word8 -> Bool
+isAstrOrDash w = w == 42 || w == 43 || w == 45
