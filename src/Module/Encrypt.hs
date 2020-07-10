@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Module.Encrypt where
 
-import Data.ByteString
+import Data.Text.Lazy as TL (pack, zip, Text, pack)
+import Data.Char            (ord, chr)
 
-advance :: ByteString -> ByteString -> ByteString
-advance passwd origin = pack $ fmap (\(a, b) -> a + b) s
-  where s = Prelude.zip (mconcat.repeat $ unpack passwd) (unpack origin)
+advance :: Text -> Text -> Text
+advance passwd origin = pack $ fmap (\(a, b) -> charPlus a b) s
+  where s = TL.zip (mconcat.repeat $ passwd) origin
 
--- vaildChars :: [Word8]
--- vaildChars = [48..127]
+charPlus :: Char -> Char -> Char
+charPlus a b = chr $ (ord a) + (ord b)

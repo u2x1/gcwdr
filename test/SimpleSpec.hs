@@ -1,28 +1,42 @@
 {-# LANGUAGE OverloadedStrings #-}
 module SimpleSpec where
 
-import Data.ByteString
-import Data.Attoparsec.ByteString
+import Data.Text
+import Data.Attoparsec.Text
 import Test.Hspec
 import Data.Markdown.Type
 import Data.Markdown.Parser
+import Data.Template.Type
+import Data.Template.Parser
 import Prelude hiding (unlines)
 
 spec :: Spec
 spec = do
-  describe "Parser.convertMD" $ do
+  describe "Markdown parsing stuff" $ do
     it "parses bold" $ do
       parseMD "**test**" `shouldBe` (rtPara [Bold "test"])
     it "parses italic" $ do
       parseMD "*test*" `shouldBe` (rtPara [Italic "test"])
     it "parses boldAndItalic" $ do
       parseMD "***test***" `shouldBe` (rtPara [BoldAndItalic "test"])
-
-  describe "Mixed Element" $ do
     it "parses unordered list" $ do
       parseMD "- xyz\n- zyx" `shouldBe` (rt $
         [ UnorderedList [ ListElem [PlainText "xyz"]
                         , ListElem [PlainText "zyx"]]])
+  describe "Template parsing stuff" $ do
+    it "parses dot" $ do
+      parseTP "[- this.posts -]" `shouldBe` (rt [DotStmt ["this","posts"]])
+    it "parses partials" $ do
+      parseTP "[- partial index.html -]" `shouldBe` (rt [PartialStmt "index.html"])
+    it "parses foreach" $ do
+      parseTP "[- foreach x in this.posts -][- end -]" `shouldBe` (rt
+        [ForeachStmt "x"
+                     (DotStmt ["this","posts"])
+                     []])
+      parseTP "[- foreach x in this.posts -][- x.title -][- end -]" `shouldBe` (rt 
+        [ForeachStmt "x"
+                     (DotStmt ["this","posts"])
+                     [DotStmt ["x","title"]]])
 
 rtPara :: [MDElem] -> Either a [MDElem]
 rtPara x = Right [Paragrah x]
@@ -30,5 +44,8 @@ rtPara x = Right [Paragrah x]
 rt :: b -> Either a b
 rt x = Right x
 
-parseMD :: ByteString -> Either String [MDElem]
+parseTP :: Text -> Either String [Stmt]
+parseTP = parseOnly (many' stmt)
+
+parseMD :: Text -> Either String [MDElem]
 parseMD = parseOnly (many' mdElem) . (<>"\n")

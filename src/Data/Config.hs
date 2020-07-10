@@ -8,12 +8,12 @@ import           Data.Config.Type
 
 configCodec :: TomlCodec Config
 configCodec = Config
-  <$> Toml.byteString "title" .= siteTitle
-  <*> Toml.byteString "site"  .= siteUrl
+  <$> Toml.text "title" .= siteTitle
+  <*> Toml.text "site"  .= siteUrl
   <*> Toml.list menuC "menu"  .= siteMenus
 
 
 menuC :: TomlCodec Menu
 menuC = Menu
-  <$> Toml.byteString "name" .= menuName
-  <*> Toml.byteString "loc"  .= menuLoc
+  <$> Toml.text "name" .= menuName
+  <*> Toml.text "loc"  .= menuLoc

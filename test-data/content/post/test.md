@@ -3,6 +3,8 @@ date: 2020-04-26
 category: Tech
 ---
 
+中文测试
+
 # h1 Heading
 ## h2 Heading
 ### h3 Heading

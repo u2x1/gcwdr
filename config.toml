@@ -3,7 +3,7 @@ site = "https://nutr1t07.github.io/"
 
 [[menu]]
 name = "Index"
-loc  = "/index.html"
+loc  = "/"
 
 [[menu]]
 name = "Friends"

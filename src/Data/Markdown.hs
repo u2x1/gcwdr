@@ -2,11 +2,14 @@
 module Data.Markdown where
 
 import Control.Applicative (many)
-import Data.Attoparsec.ByteString
+import Data.Attoparsec.Text
 import Data.List.Extra            as LE (init, dropWhileEnd)
-import Data.ByteString.Search           (breakAfter)
-import Data.ByteString            as BS (ByteString, init, last, pack, unpack, readFile)
-import Data.ByteString.UTF8             (fromString)
+-- import Data.Text.Search           (breakAfter)
+-- import Data.Text            as BS (Text, init, last, pack, unpack)
+-- import Data.Text.UTF8             (fromString)
+import Data.Text                        (Text)
+import qualified Data.Text        as T
+import Data.Text.IO               as TL (readFile)
 import Data.List                        (intersperse)
 import Data.Either                      (rights, lefts)
 import Data.Map.Lazy              as M  (singleton, (!?), Map, fromList)
@@ -18,15 +21,15 @@ import Data.Template.Type
 
 parsePost :: FilePath -> IO (Maybe ObjectTree)
 parsePost path = do
-  s <- BS.readFile path
+  s <- TL.readFile path
   case toObjectTree <$> parseOnly post s of
     Right (ObjNode x) -> do
-      let relPath = snd $ breakAfter "content/" $ fromString $ LE.init $ dropWhileEnd (/='.') path
+      let relPath = snd $ T.breakOnEnd "content/" $ T.pack $ LE.init $ dropWhileEnd (/='.') path
       pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf (relPath <> "/")) <> x))
     _ -> pure Nothing
 
-type MetaData = Map ByteString ObjectTree
-data Post = Post MetaData ByteString
+type MetaData = Map Text ObjectTree
+data Post = Post MetaData Text
   deriving (Show)
 
 instance ToObjectTree Post where
@@ -38,27 +41,27 @@ post = do
   let meta = if isJust (meta' !? "template")
                 then meta'
                 else meta' <> M.singleton "template" (ObjLeaf "post")  -- default template to "post"
-  postContent <- takeByteString
+  postContent <- takeText
   return $ Post meta (convertMD postContent)
 
 metaData :: Parser MetaData
 metaData = do
   _ <- many (string "---\n")
   els <- manyTill el (string "---")
-  _ <- many (word8 10)
+  _ <- many (char '\n')
   return (ObjLeaf <$> fromList els)
   where el = do
-          obj <- takeTill (== 58) <* word8 58 <* many (word8 32)
+          obj <- takeTill (== ':') <* char ':' <* many (char ' ')
           text <- takeTill isEndOfLine <* satisfy isEndOfLine
           return (obj, text)
 
-convertMD :: ByteString -> ByteString
+convertMD :: Text -> Text
 convertMD s = case parseOnly (many' mdElem) (s <> "\n\n") of
                 Right xs -> concat' (takeFn xs)
                 _ -> ""
 
-convertMD' :: MDElem -> ByteString
-convertMD' (Header hz x) = tag' ("h" <> fromString (show hz)) x
+convertMD' :: MDElem -> Text
+convertMD' (Header hz x) = tag' ("h" <> T.pack (show hz)) x
 convertMD' HorizontalRule         = "<hr>\n"
 convertMD' (Paragrah xs)          = tag' "p" $ concat' xs
 convertMD' (Blockquotes xs)       = tag'' "blockquote" $ concat' xs
@@ -78,53 +81,53 @@ convertMD' (Footnote x)           = propTag "sup" [("id", Just ("fnref:" <> x))]
 convertMD' (FootnoteRef x xs)     = propTag "li" [("id", Just ("fn:" <> x))] $ concat' xs
 convertMD' (FootnoteRefs xs)      = propTag "div" [("id", Just "footnotes")] $ ("<hr/>" <>) $ tag'' "ol" $ concat' xs
 
-concat' :: [MDElem] -> ByteString
+concat' :: [MDElem] -> Text
 concat' = concat'' . (convertMD' <$>)
 
-concat'' :: [ByteString] -> ByteString
+concat'' :: [Text] -> Text
 concat'' x
   | mconcat x == "" = mconcat x
-  | BS.last (mconcat x) == 10 = BS.init $ mconcat x
+  | T.last (mconcat x) == '\n' = T.init $ mconcat x
   | otherwise = mconcat x
 
-tag :: ByteString -> ByteString -> ByteString
+tag :: Text -> Text -> Text
 tag name x = mconcat ["<", name, ">", x, "</", name, ">"]
 
-tag' :: ByteString -> ByteString -> ByteString
+tag' :: Text -> Text -> Text
 tag' name x = mconcat ["<", name, ">", x, "</", name, ">\n"]
 
-tag'' :: ByteString -> ByteString -> ByteString
+tag'' :: Text -> Text -> Text
 tag'' name x = mconcat ["<", name, ">\n", x, "\n</", name, ">\n"]
 
 -- | <x xx="xx">z</x>
-propTag :: ByteString -> [(ByteString, Maybe ByteString)] -> ByteString -> ByteString
+propTag :: Text -> [(Text, Maybe Text)] -> Text -> Text
 propTag tagName prop x = mconcat ["<", tagName, " ", mconcat.intersperse " " $ makeProp <$> prop, ">", x, "</", tagName, ">\n"]
   where
     makeProp (_, Nothing) = ""
     makeProp (name, (Just value)) = mconcat [name, "=\"", value, "\""]
 
 -- | <x xx="xxx"/>
-propTag' :: ByteString -> [(ByteString, Maybe ByteString)] -> ByteString
+propTag' :: Text -> [(Text, Maybe Text)] -> Text
 propTag' tagName prop = mconcat ["<", tagName, " ", mconcat.intersperse " " $ makeProp <$> prop, "/>\n"]
   where
     makeProp (_, Nothing) = ""
     makeProp (name, (Just value)) = mconcat [name, "=\"", value, "\""]
 
 -- | <x xx="xx">z</x>
-propTag'' :: ByteString -> [(ByteString, Maybe ByteString)] -> ByteString -> ByteString
+propTag'' :: Text -> [(Text, Maybe Text)] -> Text -> Text
 propTag'' tagName prop x = mconcat ["<", tagName, " ", mconcat.intersperse " " $ makeProp <$> prop, ">", x, "</", tagName, ">"]
   where
     makeProp (_, Nothing) = ""
     makeProp (name, (Just value)) = mconcat [name, "=\"", value, "\""]
 
-escapeHTML :: ByteString -> ByteString
-escapeHTML x = pack $ mconcat $ escapeWord8 <$> unpack x
+escapeHTML :: Text -> Text
+escapeHTML x = T.pack $ mconcat $ escapeWord8 <$> T.unpack x
   where
-    escapeWord8 60 = unpack "&lt;"
-    escapeWord8 62 = unpack "&gt;"
-    escapeWord8 38 = unpack "&amp;"
-    escapeWord8 34 = unpack "&quot;"
-    escapeWord8 39 = unpack "&#39;"
+    escapeWord8 '<' = T.unpack "&lt;"
+    escapeWord8 '>' = T.unpack "&gt;"
+    escapeWord8 '&' = T.unpack "&amp;"
+    escapeWord8 '\"' = T.unpack "&quot;"
+    escapeWord8 '\'' = T.unpack "&#39;"
     escapeWord8 y = [y]
 
 -- Make footnotes be suffixes

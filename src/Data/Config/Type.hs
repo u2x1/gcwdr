@@ -1,20 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Config.Type where
 
-import Data.ByteString     (ByteString)
+import Data.Text     (Text)
 import Data.Map.Lazy       (fromList)
 import Data.Template       (toNodeList)
 import Data.Template.Type
 
 data Config = Config {
-    siteTitle :: ByteString
-  , siteUrl   :: ByteString
+    siteTitle :: Text
+  , siteUrl   :: Text
   , siteMenus :: [Menu]
 } deriving (Show)
 
 data Menu = Menu {
-    menuName :: ByteString
-  , menuLoc :: ByteString
+    menuName :: Text
+  , menuLoc :: Text
 } deriving (Show)
 
 instance ToObjectTree Menu where

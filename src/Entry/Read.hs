@@ -3,8 +3,9 @@ module Entry.Read where
 
 import System.Directory
 import System.IO.Error              (isDoesNotExistError)
-import Data.ByteString      as BS   (readFile, ByteString, writeFile)
-import Data.ByteString.UTF8 as UTF8 (fromString, toString)
+import Data.Text                    (Text)
+import qualified Data.Text  as T
+import Data.Text.IO         as T    (readFile, writeFile)
 import Data.Ord                     (Down(Down))
 import Data.Maybe                   (catMaybes)
 import Data.Map.Lazy        as M    (singleton, fromList, Map)
@@ -23,15 +24,15 @@ import Data.Config.Type
 import Utils.Logging
 import Utils.SitemapGenerator
 
-getGlbRes :: FilePath -> [FilePath] -> IO (Map ByteString ObjectTree)
+getGlbRes :: FilePath -> [FilePath] -> IO (Map Text ObjectTree)
 getGlbRes root allFiles = do
   let partialsRes = filter (isPrefixOf (root <> "theme/layout/partial")) allFiles
   partials <- M.singleton "partials" . ObjNode <$> getPartials partialsRes
   config <- M.singleton "config" . toObjectTree <$> parseConfig "config.toml"
   pure $ M.singleton "global" $ ObjNode (config <> partials)
   where getPartials ps = do
-         rawPartials <- traverse BS.readFile ps
-         pure $ fromList $ zip (fmap (fromString . takeWhileEnd (/= '/')) ps) (ObjLeaf <$> rawPartials)
+         rawPartials <- traverse T.readFile ps
+         pure $ fromList $ zip (fmap (T.pack . takeWhileEnd (/= '/')) ps) (ObjLeaf <$> rawPartials)
 
 parseConfig :: FilePath -> IO Config
 parseConfig path = do
@@ -56,6 +57,7 @@ gnrtPublic root' = do
   postObjs <- sortOn (Down . getDate) . catMaybes <$> traverse parsePost posts
   pageObjs <- catMaybes <$> traverse parsePost pages
 
+
   --- Convert index.
   let cates = fmap (\x -> mconcat [ M.singleton "cateName" (ObjLeaf x)
                                   , M.singleton "posts" (toNodeList (filter ((== Just x).getCategory) postObjs))]) $
@@ -63,7 +65,8 @@ gnrtPublic root' = do
   indexHtml <- do
     let indexObjTree = addGlb glbRes $ ObjNode $ mconcat [ M.singleton "posts"       (toNodeList postObjs)
                                                          , M.singleton "categories"  (ObjListNode cates)]
-    convertTP indexObjTree <$> BS.readFile (root <> "theme/layout/index.html")
+    let index = convertTP indexObjTree <$> T.readFile (root <> "theme/layout/index.html")
+    protectParsing "index" =<< index
 
   -- Remove out-dated public dir.
   _ <- removeDirContent (root <> "public/")
@@ -74,23 +77,28 @@ gnrtPublic root' = do
 
   let articles = (addGlb glbRes) <$> (postObjs <> pageObjs)
   -- Generate htmls.
-  BS.writeFile (root <> "public/index.html") indexHtml  -- Index
+  T.writeFile (root <> "public/index.html") indexHtml  -- Index
   gnrtHtmls root articles          -- Posts and pages
   gnrtSitemap root (siteUrl config) articles
 
 
+protectParsing :: String -> Either [String] a -> IO a
+protectParsing obj (Left x) = logErrAndTerminate ("parsing " <> obj) (unlines x)
+protectParsing _ (Right x) = pure x
+
 gnrtHtmls :: FilePath -> [ObjectTree] -> IO ()
 gnrtHtmls root =
   traverse_ (\x -> do
-    html <- convertTP x <$> BS.readFile (getLayoutFile root x)
-    let relLink = ((<>) (root <> "public/")) . toString <$> (getNode "this" x >>= getLeaf' "relLink")
+    html' <- convertTP x <$> T.readFile (getLayoutFile root x)
+    html <- protectParsing "articles" html'
+    let relLink = ((<>) (root <> "public/")) . T.unpack <$> (getNode "this" x >>= getLeaf' "relLink")
     traverse_ (createDirectoryIfMissing True) relLink
-    traverse_ (`BS.writeFile` html) $ (<> "/index.html") <$> relLink)
+    traverse_ (`T.writeFile` html) $ (<> "/index.html") <$> relLink)
 
-gnrtSitemap :: FilePath -> ByteString -> [ObjectTree] -> IO ()
+gnrtSitemap :: FilePath -> Text -> [ObjectTree] -> IO ()
 gnrtSitemap root site objs = do
   sitemap <- getSitemap site objs
-  BS.writeFile (root <> "public/sitemap.xml") sitemap
+  T.writeFile (root <> "public/sitemap.xml") sitemap
 
 
 copyFiles :: FilePath -> FilePath -> [FilePath] -> IO ()

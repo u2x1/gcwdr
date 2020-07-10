@@ -1,12 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Markdown.Parser where
 
-import           Data.Attoparsec.ByteString as APB
+import           Data.Attoparsec.Text       as APT
 import           Data.Attoparsec.Combinator
-import           Data.ByteString.UTF8             (fromString)
-import           Data.ByteString            as BS (ByteString, pack, singleton)
-import qualified Data.ByteString            as BS (last)
-import           Data.Word8
+import           Data.Text                  as T  (singleton, Text, pack, last)
+import           Data.Char
 import           Control.Applicative
 
 import           Data.Markdown.Type
@@ -16,8 +14,8 @@ mdElem = footnoteRef <|> blockquotes <|> orderedList <|> unorderedList <|> codeB
 
 escapeChar :: Parser MDElem
 escapeChar = do
-  _ <- word8 92
-  x <- BS.singleton <$> satisfy (`elem` [92,96,42,95,123,91,40,35,43,45,46,33,124])
+  _ <- char '\\'
+  x <- T.singleton <$> satisfy (`elem` ("\\`*_{[(#+-.!|" :: String))
   return (PlainText x)
 
 para :: Parser MDElem
@@ -34,11 +32,11 @@ paraElem = escapeChar <|> italic <|> bold <|> boldAndItalic <|> strikethrough <|
 
 plainText :: Parser MDElem
 plainText = PlainText <$> do
-  w <- anyWord8
+  w <- anyChar
   text <- takeTill (inClass "![_*`\\\n")
-  return (BS.singleton w <> text)
+  return (T.singleton w <> text)
 
-emphasis :: Parser ByteString
+emphasis :: Parser Text
 emphasis =
   lookAhead (satisfy (not <$> isAstrOrUds)) *>
   takeTill isAstrOrUds
@@ -65,16 +63,16 @@ boldAndItalic = do
   return (BoldAndItalic text)
 
 strikethrough :: Parser MDElem
-strikethrough = Strikethrough . pack <$> (string "~~" *> manyTill' anyWord8 (string "~~"))
+strikethrough = Strikethrough . pack <$> (string "~~" *> manyTill' anyChar (string "~~"))
 
-linkAndImageBracket :: Parser (ByteString, ByteString, Maybe ByteString)
+linkAndImageBracket :: Parser (Text, Text, Maybe Text)
 linkAndImageBracket = do
-  text <- word8 91 *> takeTill (== 93) <* word8 93  -- [ *> text *< ]
-  url <- word8 40 *> takeTill (\w -> w == 32 || w == 41)  -- '(' *> url *< (' ' || ')')
-  flag <- anyWord8
-  if flag == 32
+  text <- char '[' *> takeTill (== ']') <* char ']'  -- [ *> text *< ]
+  url <- char '(' *> takeTill (\w -> w == ' ' || w == ')')  -- '(' *> url *< (' ' || ')')
+  flag <- anyChar
+  if flag == ' '
      then do
-       title <- many' (word8 32) *> word8 34 *> takeTill (== 34) <* string "\")"
+       title <- many' (char ' ') *> char '\"' *> takeTill (== '\"') <* string "\")"
        return (text, url, Just title)
      else pure (text, url, Nothing)
 
@@ -88,30 +86,30 @@ link = do
 
 image :: Parser MDElem
 image = do
-  _ <- word8 33
+  _ <- char '!'
   (text, url, title) <- linkAndImageBracket
   return (Image text url title)
 
 code :: Parser MDElem
 code = do
-  _ <- word8 96
-  text <- takeWhile1 (/= 96)
-  _ <- word8 96
+  _ <- char '`'
+  text <- takeWhile1 (/= '`')
+  _ <- char '`'
   return (Code text)
 
 codeBlock :: Parser MDElem
 codeBlock = do
   _ <- string "```" <* skipEndOfLine
-  CodeBlock . pack <$> (manyTill anyWord8 (string "\n```") <* skipEndOfLine)
+  CodeBlock . pack <$> (manyTill anyChar (string "\n```") <* skipEndOfLine)
 
 hrztRule :: Parser MDElem
 hrztRule = do
   _ <- count 3 (satisfy isAstrOrUdsOrDash) *> satisfy isEndOfLine
   HorizontalRule <$ skipEndOfLine
   where
-    isAstrOrUdsOrDash w = isAstrOrUds w || w == 45
+    isAstrOrUdsOrDash w = isAstrOrUds w || w == '-'
 
-skipEndOfLine :: Parser [Word8]
+skipEndOfLine :: Parser [Char]
 skipEndOfLine = many (satisfy isEndOfLine)
 
 blockquotes :: Parser MDElem
@@ -122,34 +120,34 @@ blockquotes = do
     Right mdElems -> return (Blockquotes mdElems)
     Left _ -> return (Blockquotes [PlainText text])
   where
-    takePrefix = word8 62 <* many (word8 32)
+    takePrefix = char '>' <* many (char ' ')
 
 orderedList :: Parser MDElem
-orderedList = OrderedList . mconcat <$> some (some (satisfy isDigit) *> word8 46 *> listElem 0)
+orderedList = OrderedList . mconcat <$> some (some (satisfy isDigit) *> char '.' *> listElem 0)
 
 unorderedList :: Parser MDElem
 unorderedList = UnorderedList . mconcat <$> some (satisfy isAstrOrDash *> listElem 0)
 
 orderedList' :: Int -> Parser MDElem
-orderedList' indent = OrderedList . mconcat <$> some (count indent (word8 32) *> some (satisfy isDigit) *> word8 46 *> listElem indent)
+orderedList' indent = OrderedList . mconcat <$> some (count indent (char ' ') *> some (satisfy isDigit) *> char '.' *> listElem indent)
 
 unorderedList' :: Int ->  Parser MDElem
-unorderedList' indent = UnorderedList . mconcat <$> (some (count indent (word8 32) *> satisfy isAstrOrDash *> listElem indent) <* skipEndOfLine)
+unorderedList' indent = UnorderedList . mconcat <$> (some (count indent (char ' ') *> satisfy isAstrOrDash *> listElem indent) <* skipEndOfLine)
 
 listElem :: Int -> Parser [MDElem]
 listElem hIndent = do
-  _ <- some (word8 32)
+  _ <- some (char ' ')
   text <- takeTill isEndOfLine <* many' (satisfy isEndOfLine)
   let lElem = case parseOnly (some paraElem) text of
                 Right p -> p
                 Left _ -> [PlainText text]
-  if BS.last text /= 10
+  if T.last text /= '\n'
      then return [ListElem lElem]
      else do
-       s <- pack <$> lookAhead (count (hIndent + 1) anyWord8)
+       s <- pack <$> lookAhead (count (hIndent + 1) anyChar)
        if s == mconcat (replicate (hIndent + 1) " ")
           then do
-            spaceCnt <- lookAhead (count hIndent (word8 32) *> some (word8 32))
+            spaceCnt <- lookAhead (count hIndent (char ' ') *> some (char ' '))
             let indent = hIndent + Prelude.length spaceCnt
             inListElem <-
               codeBlock <|> blockquotes <|> image <|> orderedList' indent <|> unorderedList' indent <|> para
@@ -158,17 +156,17 @@ listElem hIndent = do
 
 header :: Parser MDElem
 header = do
-  headerSize <- length <$> some (word8 35)
-  _ <- some (word8 32)
+  headerSize <- length <$> some (char '#')
+  _ <- some (char ' ')
   text <- takeTill isEndOfLine <* skipEndOfLine
   return (Header headerSize text)
 
 footnote :: Parser MDElem
-footnote = Footnote <$> (string "[^" *> takeTill (== 93) <* word8 93)
+footnote = Footnote <$> (string "[^" *> takeTill (== ']') <* char ']')
 
 footnoteRef :: Parser MDElem
 footnoteRef = do
-  identity <- string "[^" *> takeTill (== 93) <* string "]:" <* many (word8 32)
+  identity <- string "[^" *> takeTill (== ']') <* string "]:" <* many (char ' ')
   fstElem <- takeTill isEndOfLine <* many (satisfy isEndOfLine)
   fElem <- case parseOnly mdElem fstElem of
              Right x -> pure [x]
@@ -177,24 +175,21 @@ footnoteRef = do
   return (FootnoteRef identity (addSign (fElem <> iElems) identity))
   where
     addSign xs identity = init xs <>
-      case last xs of
-        Paragrah x -> [Paragrah (x <> [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing])]
-        x -> x : [Link [PlainText (fromString "↩")] ("#fnref:" <> identity) Nothing]
+      case Prelude.last xs of
+        Paragrah x -> [Paragrah (x <> [Link [PlainText ("↩")] ("#fnref:" <> identity) Nothing])]
+        x -> x : [Link [PlainText ("↩")] ("#fnref:" <> identity) Nothing]
     elemInside = do
-      s <- lookAhead anyWord8
-      if s == 32
+      s <- lookAhead anyChar
+      if s == ' '
          then do
            _ <- many' (satisfy isSpace)
            pure <$> mdElem
          else fail ""
 
-isEndOfLine :: Word8 -> Bool
-isEndOfLine w = w == 10 || w == 13
-
 -- * or _
-isAstrOrUds :: Word8 -> Bool
-isAstrOrUds w = w == 95 || w == 42
+isAstrOrUds :: Char -> Bool
+isAstrOrUds w = w == '_' || w == '*'
 
 -- * or -
-isAstrOrDash :: Word8 -> Bool
-isAstrOrDash w = w == 42 || w == 43 || w == 45
+isAstrOrDash :: Char -> Bool
+isAstrOrDash w = w == '*' || w == '+' || w == '-'
