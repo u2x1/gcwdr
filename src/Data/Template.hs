@@ -34,7 +34,7 @@ convertTP' objs s@ForeachStmt {} = convertForeach objs s
 convertTP' objs s@DotStmt {}     = convertDot objs s
 convertTP' objs s@PartialStmt {} = convertPartial objs s
 
--- Converting template to the exact html.
+-- Converting template to the actual html.
 
 convertPartial :: ObjectTree -> Stmt -> Either String Text
 convertPartial objs (PartialStmt partPath) =
@@ -46,12 +46,13 @@ convertPartial objs (PartialStmt partPath) =
 convertPartial _ s = Left ("error statement: "<> (show s))
 
 convertForeach :: ObjectTree -> Stmt -> Either String Text
-convertForeach objs (ForeachStmt holder dotObj stmts) =
+convertForeach objs@(ObjNode objs') (ForeachStmt holder dotObj stmts) =
   case convertDot2NodeList objs dotObj of
     Right nodeList -> go . mconcat $
-      fmap (\node -> fmap (convertTP' (ObjNode $ M.singleton holder (ObjNode node))) stmts) nodeList
+      fmap (\node -> fmap (convertTP' (addRes node)) stmts) nodeList
     Left err -> Left $ "converting nodelist: " <> err
   where
+    addRes node' = ObjNode (M.singleton holder (ObjNode node') <> objs')
     go x = if Prelude.null $ lefts x
               then Right $ mconcat . rights $ x
               else Left $ unlines $ lefts x
@@ -60,22 +61,22 @@ convertForeach _ s = Left ("error statement: "<> (show s))
 convertDot2NodeList :: ObjectTree -> Stmt -> Either String [Map Text ObjectTree]
 convertDot2NodeList objs (DotStmt mems) =
   let
-    run (ObjListNode s) [] = Right s
-    run (ObjNode obj') (x:xs) = case obj' !? x of
+    run (ObjNodeList s) [] = Right s
+    run (ObjNode obj) (x:xs) = case obj !? x of
                                   Just a ->  run a xs
-                                  _ -> Left (show x <> " not found in " <> show mems <> " at " <> show obj')
-    run _ x = (Left ("error object type in " <> show x)) in
+                                  _ -> Left (show x <> " on " <> show mems <> " not found in object tree:\n" <> showObjTree objs)
+    run obj x = (Left ("cannot match the type ObjectNode with actual type" <> getType obj <> " in " <> show x)) in
   run objs mems
-convertDot2NodeList _ s = Left ("Error statement: "<> (show s))
+convertDot2NodeList _ s = Left ("error statement: "<> (show s))
 
 convertDot :: ObjectTree -> Stmt -> Either String Text
 convertDot objs (DotStmt mems) =
   let
     run (ObjLeaf s) [] = Right s
-    run (ObjNode obj') (x:xs) = case obj' !? x of
+    run (ObjNode obj) (x:xs) = case obj !? x of
                                   Just a -> run a xs
-                                  _      -> Left (show x <> " not found in " <> show mems <> " at " <> show obj')
-    run _ x = (Left ("error object type in " <> show x)) in
+                                  _      -> Left (show x <> " on " <> show mems <> " not found in " <> showObjTree objs)
+    run obj x = (Left ("cannot match the type ObjectNode with actual type" <> getType obj <> " in " <> show x)) in
   run objs mems
 convertDot _ s = Left ("error statement: "<> (show s))
 
@@ -108,14 +109,12 @@ singletonObjNode key x = (go key) x
   where go [] = id
         go (y:ys) = (singleton y) . ObjNode . (go ys)
 
-addListLayer :: Text -> ObjectTree -> ObjectTree
-addListLayer str ot = ObjNode (M.singleton str ot)
 
 addGlb :: Map Text ObjectTree -> ObjectTree-> ObjectTree
 addGlb glbRes x = ObjNode (M.singleton "this" x <> glbRes)
 
 toNodeList :: [ObjectTree] -> ObjectTree
-toNodeList = ObjListNode . fmap (\(ObjNode x) -> x)
+toNodeList = ObjNodeList . fmap (\(ObjNode x) -> x)
 
 getLayoutFile :: FilePath -> ObjectTree -> FilePath
 getLayoutFile root x = case getNode "this" x >>= getLeaf' "template" of

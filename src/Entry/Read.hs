@@ -64,7 +64,7 @@ gnrtPublic root' = do
                    catMaybes (nub $ getCategory <$> postObjs)
   indexHtml <- do
     let indexObjTree = addGlb glbRes $ ObjNode $ mconcat [ M.singleton "posts"       (toNodeList postObjs)
-                                                         , M.singleton "categories"  (ObjListNode cates)]
+                                                         , M.singleton "categories"  (ObjNodeList cates)]
     let index = convertTP indexObjTree <$> T.readFile (root <> "theme/layout/index.html")
     protectParsing "index" =<< index
 
