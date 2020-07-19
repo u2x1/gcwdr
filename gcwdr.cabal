@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 622e1c6765b64e2e5beedbcb44baeb66182a3b2f9c9aa400ea0c83fd8b98bf05
+-- hash: 5c74b65c2fce7976e7b35f00b40d1f82aa22387d307437f2a1a45e425eac9ebf
 
 name:           gcwdr
 version:        0.1.0.0
@@ -52,6 +52,7 @@ library
     , containers
     , directory
     , extra
+    , filepath
     , hspec
     , hspec-discover
     , html-entities
@@ -80,6 +81,7 @@ executable gcwdr-exe
     , containers
     , directory
     , extra
+    , filepath
     , gcwdr
     , hspec
     , hspec-discover
@@ -111,6 +113,7 @@ test-suite gcwdr-test
     , containers
     , directory
     , extra
+    , filepath
     , gcwdr
     , hspec
     , hspec-discover

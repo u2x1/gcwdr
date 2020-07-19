@@ -8,11 +8,12 @@ import           Network.Socket
 import           Network.Socket.ByteString        (recv, sendAll)
 import qualified Data.ByteString           as S
 import           Data.ByteString.UTF8             (toString)
+import           Utils.Logging
 
-runBlogPreview :: FilePath -> IO ()
-runBlogPreview root = do
-  putStrLn "Web server running at http://localhost:4000."
-  runTCPServer "4000" (showHtml root)
+runBlogPreview :: FilePath -> Int -> IO ()
+runBlogPreview root port = do
+  logWT Info $ "running web server at http://localhost:" <> show port
+  runTCPServer (show port) (showHtml root)
   where
     showHtml path s = do
         msg <- recv s 1024

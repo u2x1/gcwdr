@@ -37,6 +37,7 @@ dependencies:
 - stringsearch
 - process
 - tomland >= 1.3.0.0
+- filepath
 
 library:
   source-dirs: src

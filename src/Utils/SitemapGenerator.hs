@@ -2,8 +2,8 @@
 module Utils.SitemapGenerator where
 
 import Data.Text
-import Data.Time (getCurrentTime, defaultTimeLocale, formatTime)
-import Data.Maybe (catMaybes)
+import Data.Time           (getCurrentTime, defaultTimeLocale, formatTime)
+import Data.Maybe          (catMaybes)
 
 import Data.Template
 import Data.Template.Type

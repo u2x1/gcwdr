@@ -2,8 +2,8 @@ module Utils.Git where
 
 import           System.Process     (callCommand)
 
-deploy :: IO ()
-deploy = callCommand "cd public && git push"
+deploy :: FilePath -> IO ()
+deploy output = callCommand $ "cd " <> output <> " && git push"
 
-commit :: String -> IO ()
-commit msg = callCommand ("cd public && git add . && git commit -m \'" <> msg <> "\'")
+commit :: String -> FilePath -> IO ()
+commit msg output = callCommand ("cd " <> output <> " && git add . && git commit -m \'" <> msg <> "\'")

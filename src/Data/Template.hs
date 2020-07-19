@@ -116,11 +116,6 @@ addGlb glbRes x = ObjNode (M.singleton "this" x <> glbRes)
 toNodeList :: [ObjectTree] -> ObjectTree
 toNodeList = ObjNodeList . fmap (\(ObjNode x) -> x)
 
-getLayoutFile :: FilePath -> ObjectTree -> FilePath
-getLayoutFile root x = case getNode "this" x >>= getLeaf' "template" of
-                         Just t -> (root <> "theme/layout/" <> T.unpack t <> ".html")
-                         _ -> "theme/layout/nolayout.html"
-
 getDate :: ObjectTree -> Maybe UTCTime
 getDate obj = (\x -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (T.unpack x) :: UTCTime) <$> (getLeaf' "date" obj)
 

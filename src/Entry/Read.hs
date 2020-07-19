@@ -24,9 +24,11 @@ import Data.Config.Type
 import Utils.Logging
 import Utils.SitemapGenerator
 
+import System.FilePath
+
 getGlbRes :: FilePath -> [FilePath] -> IO (Map Text ObjectTree)
-getGlbRes root allFiles = do
-  let partialsRes = filter (isPrefixOf (root <> "theme/layout/partial")) allFiles
+getGlbRes themePath allFiles = do
+  let partialsRes = filter (isPrefixOf (themePath </> "layout/partial")) allFiles
   partials <- M.singleton "partials" . ObjNode <$> getPartials partialsRes
   config <- M.singleton "config" . toObjectTree <$> parseConfig "config.toml"
   pure $ M.singleton "global" $ ObjNode (config <> partials)
@@ -41,18 +43,20 @@ parseConfig path = do
     Left errs -> logErrAndTerminate "Parsing config" (show errs)
     Right config -> pure config
 
-gnrtPublic :: FilePath -> IO ()
-gnrtPublic root' = do
-  let root = if last root' == '/' then root' else root' <> "/"
+gnrtPublic :: Config -> IO ()
+gnrtPublic cfg = do
+  logWT Info "generating output"
+  let atclPath  = articleDir cfg
+      themePath = themeDir cfg
+  articleRes <- getAllFiles atclPath
+  themeRes <- getAllFiles themePath
+  let posts = filter (\p -> (atclPath </> "post/") `isPrefixOf` p && ".md" `isSuffixOf` p) articleRes 
+      pages = filter (\p -> (atclPath </> "page/") `isPrefixOf` p && ".md" `isSuffixOf` p) articleRes
+      cStatics = filter (isPrefixOf (atclPath </> "static/"))  articleRes 
+      statics  = filter (isPrefixOf (themePath </> "static/")) themeRes
 
-  allFiles <- getAllFiles root
-  let posts = filter (\p -> (root <> "content/post/") `isPrefixOf` p && ".md" `isSuffixOf` p) allFiles
-      pages = filter (\p -> (root <> "content/page/") `isPrefixOf` p && ".md" `isSuffixOf` p) allFiles
-      cStatics = filter (isPrefixOf (root <> "content/static/")) allFiles
-      statics  = filter (isPrefixOf (root <> "theme/static/")) allFiles
-
-  glbRes <- getGlbRes root allFiles
-  config <- parseConfig "config.toml"
+  glbRes <- getGlbRes themePath themeRes
+  -- config <- parseConfig "config.toml"
 
   postObjs <- sortOn (Down . getDate) . catMaybes <$> traverse parsePost posts
   pageObjs <- catMaybes <$> traverse parsePost pages
@@ -65,58 +69,73 @@ gnrtPublic root' = do
   indexHtml <- do
     let indexObjTree = addGlb glbRes $ ObjNode $ mconcat [ M.singleton "posts"       (toNodeList postObjs)
                                                          , M.singleton "categories"  (ObjNodeList cates)]
-    let index = convertTP indexObjTree <$> T.readFile (root <> "theme/layout/index.html")
-    protectParsing "index" =<< index
+    let index = convertTP indexObjTree <$> T.readFile (themePath </> "layout/index.html")
+    getFromTP "index" =<< index
 
   -- Remove out-dated public dir.
-  _ <- removeDirContent (root <> "public/")
+  _ <- removeDirContent (outputDir cfg)
 
   -- Copy static files.
-  copyFiles root "theme/static"   statics
-  copyFiles root "content/static" cStatics
+  let outputPath = outputDir cfg
+  copyFiles outputPath (themePath </> "static/")   statics
+  copyFiles outputPath (atclPath  </> "static/") cStatics
 
   let articles = (addGlb glbRes) <$> (postObjs <> pageObjs)
   -- Generate htmls.
-  T.writeFile (root <> "public/index.html") indexHtml  -- Index
-  gnrtHtmls root articles          -- Posts and pages
-  gnrtSitemap root (siteUrl config) articles
+  T.writeFile ((outputDir cfg) </> "index.html") indexHtml  -- Index
+  gnrtHtmls   outputPath themePath articles          -- Posts and pages
+  gnrtSitemap outputPath (siteUrl cfg) articles
 
 
-protectParsing :: String -> Either [String] a -> IO a
-protectParsing obj (Left x) = logErrAndTerminate ("parsing " <> obj) (unlines x)
-protectParsing _ (Right x) = pure x
+getFromTP :: String -> Either [String] a -> IO a
+getFromTP obj (Left x) = logErrAndTerminate ("parsing " <> obj) (unlines x)
+getFromTP _ (Right x) = pure x
 
-gnrtHtmls :: FilePath -> [ObjectTree] -> IO ()
-gnrtHtmls root =
+getLayoutFile :: FilePath -> ObjectTree -> FilePath
+getLayoutFile themePath x = case getNode "this" x >>= getLeaf' "template" of
+                         Just t -> (themePath </> "layout" </> T.unpack t <> ".html")
+                         _ -> themePath </> "layout/nolayout.html"
+
+fromMaybeM :: String -> Maybe a -> IO a
+fromMaybeM _ (Just x) = pure x 
+fromMaybeM msg _ = logErrAndTerminate msg "encountered Nothing in fromMaybe"
+
+gnrtHtmls :: FilePath -> FilePath -> [ObjectTree] -> IO ()
+gnrtHtmls outputPath themePath =
   traverse_ (\x -> do
-    html' <- convertTP x <$> T.readFile (getLayoutFile root x)
-    html <- protectParsing "articles" html'
-    let relLink = ((<>) (root <> "public/")) . T.unpack <$> (getNode "this" x >>= getLeaf' "relLink")
-    traverse_ (createDirectoryIfMissing True) relLink
-    traverse_ (`T.writeFile` html) $ (<> "/index.html") <$> relLink)
+    title <- fromMaybeM ("getting title from article") (T.unpack <$> (getNode "this" x >>= getLeaf' "title"))
+    relLink <- fromMaybeM ("getting relLink from article") ((outputPath </>) . T.unpack <$> (getNode "this" x >>= getLeaf' "relLink"))
+    logWT Info $ "generating article \"" <> title <> "\""
+    html <- getFromTP "articles" =<< (convertTP x <$> T.readFile (getLayoutFile themePath x))
+    _ <- createDirectoryIfMissing True relLink
+    T.writeFile (relLink </> "index.html") html)
 
 gnrtSitemap :: FilePath -> Text -> [ObjectTree] -> IO ()
-gnrtSitemap root site objs = do
+gnrtSitemap outputPath site objs = do
+  let siteMapPath = outputPath </> "sitemap.xml"
+  logWT Info $ "generating sitemap at " <> siteMapPath
   sitemap <- getSitemap site objs
-  T.writeFile (root <> "public/sitemap.xml") sitemap
+  T.writeFile siteMapPath sitemap
 
 
 copyFiles :: FilePath -> FilePath -> [FilePath] -> IO ()
-copyFiles root prefix2Remove =
+copyFiles outputPath inputPath =
   traverse_ (\source -> copyFile' source (getTarget source))
   where
-    copyFile' source target = catchJust (guard . isDoesNotExistError)
-                                        (copyFile source target)
-                                        (\_ -> cr8Dir target >> (copyFile source target))
-    getTarget = ((root <> "public") <>) . drop (length (root <> prefix2Remove))
+    copyFile' source target = do
+        logWT Info $ "copying file " <> source <> " to " <> target
+        catchJust (guard . isDoesNotExistError)
+                  (copyFile source target)
+                  (\_ -> cr8Dir target >> (copyFile source target))
+    getTarget = (outputPath </>) . drop (length inputPath)
     cr8Dir path = createDirectoryIfMissing True (dropWhileEnd (/='/') path)
 
 getAllFiles :: FilePath -> IO [FilePath]
 getAllFiles root' = do
-  -- Prevent it from walking into "..", "." dirs
-  contents <- filter (not . (isPrefixOf ".")) <$> getDirectoryContents root'
+  -- Prevent it from walking into ".git", ".stack-work" dirs
+  contents <- filter (not . (isPrefixOf ".")) <$> listDirectory root'
   let root = if last root' == '/' then root' else root' <> "/"
-      filesAndDirs = (root <>) <$> contents
+      filesAndDirs = (root </>) <$> contents
 
   dirs <- filterM doesDirectoryExist filesAndDirs
   subFiles <- if null dirs then pure [] else mconcat <$> traverse getAllFiles dirs
@@ -126,15 +145,15 @@ getAllFiles root' = do
 
 -- Remove anything except filename started with "." like ".git"
 removeDirContent :: FilePath -> IO ()
-removeDirContent root' = do
-  ext <- doesDirectoryExist root'
+removeDirContent root = do
+  logWT Info $ "removing dir content " <> root
+  ext <- doesDirectoryExist root
   if ext
      then do
-          contents <- filter (not . (isPrefixOf ".")) <$> getDirectoryContents root'
-          let root = if last root' == '/' then root' else root' <> "/"
-              filesAndDirs = (root <>) <$> contents
+          contents <- filter (not . (isPrefixOf ".")) <$> getDirectoryContents root
+          let filesAndDirs = (root </>) <$> contents
           dirs <- filterM doesDirectoryExist filesAndDirs
           let files = filter (not . (`elem` dirs)) filesAndDirs
           traverse_ removeDirectoryRecursive dirs
           traverse_ removeFile files
-     else pure ()
+     else createDirectory root >> pure ()

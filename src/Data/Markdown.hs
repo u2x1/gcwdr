@@ -24,7 +24,7 @@ parsePost path = do
   s <- TL.readFile path
   case toObjectTree <$> parseOnly post s of
     Right (ObjNode x) -> do
-      let relPath = snd $ T.breakOnEnd "content/" $ T.pack $ LE.init $ dropWhileEnd (/='.') path
+      let relPath = T.toLower (snd $ T.breakOnEnd "content/" $ T.pack $ LE.init $ dropWhileEnd (/='.') path)
       pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf (relPath <> "/")) <> x))
     _ -> pure Nothing
 

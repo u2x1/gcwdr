@@ -7,9 +7,13 @@ import Data.Template       (toNodeList)
 import Data.Template.Type
 
 data Config = Config {
-    siteTitle :: Text
-  , siteUrl   :: Text
-  , siteMenus :: [Menu]
+    siteTitle       :: Text
+  , siteUrl         :: Text
+  , siteMenus       :: [Menu]
+  , outputDir       :: FilePath
+  , themeDir        :: FilePath
+  , articleDir      :: FilePath
+  , localServerPort :: Int
 } deriving (Show)
 
 data Menu = Menu {
