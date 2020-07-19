@@ -9,14 +9,14 @@ import Data.Text            as T (pack, singleton)
 import Data.Template.Type
 
 stmt :: Parser Stmt
-stmt = foreachStmt <|> stmt' <|> raw
+stmt = ifdefStmt <|> foreachStmt <|> stmt' <|> raw
 
 stmt' :: Parser Stmt
 stmt' = do
   _ <- string "[-" *> many (char ' ')
   s <- T.pack <$> manyTill anyChar (many (char ' ') *> string "-]")
   case parseOnly (partialsStmt <|> dotStmt) s of
-    Left _ -> fail "Parse statement failed."
+    Left _ -> fail "parse statement failed."
     Right x -> return x
 
 dotStmt :: Parser Stmt
@@ -24,12 +24,22 @@ dotStmt = do
   obj <- takeTill (\w -> w == '.' || w == ' ')
   mem <- some (char '.' *> takeTill (\w -> w == '.' || w == ' '))
   return (DotStmt (obj:mem))
-
+  
 partialsStmt :: Parser Stmt
 partialsStmt = do
   _ <- string "partial" *> some (char ' ')
   pFile <- takeTill (== ' ')
   return (PartialStmt pFile)
+
+ifdefStmt :: Parser Stmt
+ifdefStmt = do
+  _ <- string "[- ifdef" *> many (char ' ')
+  obj <- dotStmt <* many (char ' ') <* string "-]" <* many (satisfy isEndOfLine)
+  trueStmts <- manyTill stmt (string "[- else -]")
+  falseStmts <- manyTill stmt (string "[- end -]")
+  return (IfdefStmt obj trueStmts falseStmts)
+
+
 
 foreachStmt :: Parser Stmt
 foreachStmt = do

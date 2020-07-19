@@ -3,6 +3,12 @@
       <div class="post-list content">
 
       <h3>Blog</h3>
+      [- ifdef global.cofig -]
+      [- global.config.siteTitle -]
+      <h3>nmsl</h3>
+      [- else -]
+      <h3>NLML</h3>
+      [- end -]
        [- foreach x in this.categories -]
 
         <h3> [- x.cateName -] </h3>

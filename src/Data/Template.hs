@@ -2,8 +2,7 @@
 module Data.Template where
 
 import Data.Map.Lazy              as M
-import Data.Text                       (Text)
-import Data.Text                  as T (unpack, init, last)
+import Data.Text                  as T (Text, unpack, init, last)
 import Data.Attoparsec.Text
 import Data.Either
 import Data.Time
@@ -29,7 +28,7 @@ concatAndInit' x
 
 convertTP' :: ObjectTree -> Stmt -> Either String Text
 convertTP' _    (Raw rawHtml)    = Right rawHtml
-convertTP' _    IfStmt           = Left "Not implemented yet"
+convertTP' objs s@IfdefStmt {}   = convertIfdef objs s
 convertTP' objs s@ForeachStmt {} = convertForeach objs s
 convertTP' objs s@DotStmt {}     = convertDot objs s
 convertTP' objs s@PartialStmt {} = convertPartial objs s
@@ -43,7 +42,24 @@ convertPartial objs (PartialStmt partPath) =
                        Right x -> Right x
                        Left err -> Left $ "converting partial: " <> unlines err
     _ -> Left $ "partial file " <> show partPath <> " not found in global resource"
-convertPartial _ s = Left ("error statement: "<> (show s))
+convertPartial _ s = Left ("unexpected statement: "<> (show s))
+
+
+convertIfdef :: ObjectTree -> Stmt -> Either String Text
+convertIfdef objs@(ObjNode _) (IfdefStmt (DotStmt dotObj) trueStmts falseStmts) =
+  if checkIfExist objs dotObj
+     then go $ fmap (convertTP' objs) trueStmts
+     else go $ fmap (convertTP' objs) falseStmts
+  where
+    go x = if Prelude.null $ lefts x
+              then Right $ mconcat . rights $ x
+              else Left $ unlines $ lefts x
+    checkIfExist _ [] = True
+    checkIfExist (ObjNode o) (d:ds) = case o !? d of
+                                              Just x -> checkIfExist x ds
+                                              _ -> False
+    checkIfExist _ _ = False
+convertIfdef _ s = Left ("unexpected statement: "<> (show s))
 
 convertForeach :: ObjectTree -> Stmt -> Either String Text
 convertForeach objs@(ObjNode objs') (ForeachStmt holder dotObj stmts) =
@@ -56,7 +72,7 @@ convertForeach objs@(ObjNode objs') (ForeachStmt holder dotObj stmts) =
     go x = if Prelude.null $ lefts x
               then Right $ mconcat . rights $ x
               else Left $ unlines $ lefts x
-convertForeach _ s = Left ("error statement: "<> (show s))
+convertForeach _ s = Left ("unexpected statement: "<> (show s))
 
 convertDot2NodeList :: ObjectTree -> Stmt -> Either String [Map Text ObjectTree]
 convertDot2NodeList objs (DotStmt mems) =
@@ -65,9 +81,9 @@ convertDot2NodeList objs (DotStmt mems) =
     run (ObjNode obj) (x:xs) = case obj !? x of
                                   Just a ->  run a xs
                                   _ -> Left (show x <> " on " <> show mems <> " not found in object tree:\n" <> showObjTree objs)
-    run obj x = (Left ("cannot match the type ObjectNode with actual type" <> getType obj <> " in " <> show x)) in
+    run obj x = (Left ("cannot match the expected type ObjNode with actual type " <> getType obj <> " in " <> show x)) in
   run objs mems
-convertDot2NodeList _ s = Left ("error statement: "<> (show s))
+convertDot2NodeList _ s = Left ("unexpected statement: "<> (show s))
 
 convertDot :: ObjectTree -> Stmt -> Either String Text
 convertDot objs (DotStmt mems) =
@@ -76,9 +92,9 @@ convertDot objs (DotStmt mems) =
     run (ObjNode obj) (x:xs) = case obj !? x of
                                   Just a -> run a xs
                                   _      -> Left (show x <> " on " <> show mems <> " not found in " <> showObjTree objs)
-    run obj x = (Left ("cannot match the type ObjectNode with actual type" <> getType obj <> " in " <> show x)) in
+    run obj x = (Left ("cannot match the expected type ObjLeaf with actual type " <> getType obj <> " in " <> show x)) in
   run objs mems
-convertDot _ s = Left ("error statement: "<> (show s))
+convertDot _ s = Left ("unexpected statement: "<> (show s))
 
 
 

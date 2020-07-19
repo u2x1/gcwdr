@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5c74b65c2fce7976e7b35f00b40d1f82aa22387d307437f2a1a45e425eac9ebf
+-- hash: 09c6bba220bd5732d3827e5cda7717dee41beeee3b4b8f751e0c56734131f5d9
 
 name:           gcwdr
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       Data.Template.Parser
       Data.Template.Type
       Entry.Read
+      Module.Console
       Module.Encrypt
       Utils.Git
       Utils.Logging

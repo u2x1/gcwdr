@@ -14,7 +14,7 @@ configCodec = Config
   <*> Toml.string "outputDir"        .= outputDir
   <*> Toml.string "themeDir"         .= themeDir
   <*> Toml.string "articleDir"       .= articleDir
-  <*> Toml.int "localServerPort"  .= localServerPort
+  <*> Toml.int "localServerPort"     .= localServerPort
 
 
 menuC :: TomlCodec Menu

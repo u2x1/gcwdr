@@ -10,7 +10,7 @@ type MapO x = Map Text x
 data Stmt = DotStmt [Text]
           | ForeachStmt Text Stmt [Stmt]
           | PartialStmt Text
-          | IfStmt
+          | IfdefStmt Stmt [Stmt] [Stmt]
           | Raw Text
   deriving (Show, Eq)
 

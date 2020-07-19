@@ -1,5 +1,5 @@
-title = "Nutr1t07's Blog"
-site = "https://nutr1t07.github.io/"
+title      = "Test Page"
+site       = "https://www.example.com/"
 articleDir = "test-data/content/"
 themeDir   = "test-data/theme/"
 outputDir  = "test-data/public/"
@@ -8,7 +8,3 @@ localServerPort  = 4000
 [[menu]]
 name = "Index"
 loc  = "/"
-
-[[menu]]
-name = "Friends"
-loc  = "/page/friends/"
