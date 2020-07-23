@@ -2,8 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
    <url>
       <loc>https://www.example.com/</loc>
-      <lastmod>2020-07-19</lastmod>
+      <lastmod>2020-07-23</lastmod>
       <priority>0.8</priority>
+   </url>
+   <url>
+      <loc>https://www.example.com/post/encrypt-test/</loc>
+      <lastmod>2020-07-20</lastmod>
+      <priority>0.6</priority>
    </url>
    <url>
       <loc>https://www.example.com/post/test/</loc>

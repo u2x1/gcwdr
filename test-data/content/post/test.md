@@ -1,6 +1,6 @@
 title: test
 date: 2020-04-26
-category: Tech
+category: Testing
 ---
 
 中文测试
@@ -12,7 +12,7 @@ category: Tech
 ##### h5 Heading
 ###### h6 Heading
 
-\*fuck\*
+Escape Character \*fuck\*
 
 ## Horizontal Rules
 

@@ -4,9 +4,6 @@ module Data.Markdown where
 import Control.Applicative (many)
 import Data.Attoparsec.Text
 import Data.List.Extra            as LE (init, dropWhileEnd)
--- import Data.Text.Search           (breakAfter)
--- import Data.Text            as BS (Text, init, last, pack, unpack)
--- import Data.Text.UTF8             (fromString)
 import Data.Text                        (Text)
 import qualified Data.Text        as T
 import Data.Text.IO               as TL (readFile)

@@ -21,6 +21,7 @@ import Data.Template
 import Data.Template.Type
 import Data.Config
 import Data.Config.Type
+import Module.Console
 import Utils.Logging
 import Utils.SitemapGenerator
 
@@ -80,7 +81,7 @@ gnrtPublic cfg = do
   copyFiles outputPath (themePath </> "static/")   statics
   copyFiles outputPath (atclPath  </> "static/") cStatics
 
-  let articles = (addGlb glbRes) <$> (postObjs <> pageObjs)
+  let articles = (addGlb glbRes) <$> runAtclModule (postObjs <> pageObjs)
   -- Generate htmls.
   T.writeFile ((outputDir cfg) </> "index.html") indexHtml  -- Index
   gnrtHtmls   outputPath themePath articles          -- Posts and pages

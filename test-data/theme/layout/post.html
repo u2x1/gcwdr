@@ -1,9 +1,21 @@
 [- partial header.html -]
-  <div class="content">
-  <h3>[- this.title -]</h3>
-
+  <div id="article" class="content">
+  <h3 id="article-title">[- this.title -]</h3>
+  [- ifdef this.passwd -]
+  <div id="passwd-div">
+    <p>This is an encrypted article. Enable JavaScript and enter the password below.</p>
+    <input id="passwd">
+    <button onClick=decrypt()>Decrypt</button>
+    <button onClick=reset()>Reset</button>
+    <button onClick=hidePasswdDiv()>Hide</button>
+    <br/>
+    <br/>
+  </div>
+  [- else -]
+  [- end -]
+  <div id="article-content">
   [- this.content -]
-
+  </div>
   </div>
 
 </body>
