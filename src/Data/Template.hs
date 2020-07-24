@@ -68,7 +68,7 @@ convertForeach objs@(ObjNode objs') (ForeachStmt holder dotObj stmts) =
       fmap (\node -> fmap (convertTP' (addRes node)) stmts) nodeList
     Left err -> Left $ "converting nodelist: " <> err
   where
-    addRes node' = ObjNode (M.singleton holder (ObjNode node') <> objs')
+    addRes node' = ObjNode (M.insert holder (ObjNode node') objs')
     go x = if Prelude.null $ lefts x
               then Right $ mconcat . rights $ x
               else Left $ unlines $ lefts x
@@ -127,7 +127,7 @@ singletonObjNode key x = (go key) x
 
 
 addGlb :: Map Text ObjectTree -> ObjectTree-> ObjectTree
-addGlb glbRes x = ObjNode (M.singleton "this" x <> glbRes)
+addGlb glbRes x = ObjNode (M.insert "this" x glbRes)
 
 toNodeList :: [ObjectTree] -> ObjectTree
 toNodeList = ObjNodeList . fmap (\(ObjNode x) -> x)

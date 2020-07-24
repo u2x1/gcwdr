@@ -9,7 +9,7 @@ import qualified Data.Text        as T
 import Data.Text.IO               as TL (readFile)
 import Data.List                        (intersperse)
 import Data.Either                      (rights, lefts)
-import Data.Map.Lazy              as M  (singleton, (!?), Map, fromList)
+import Data.Map.Lazy              as M  (insert, (!?), Map, fromList, update)
 import Data.Maybe
 
 import Data.Markdown.Type
@@ -22,7 +22,7 @@ parsePost path = do
   case toObjectTree <$> parseOnly post s of
     Right (ObjNode x) -> do
       let relPath = T.toLower (snd $ T.breakOnEnd "content/" $ T.pack $ LE.init $ dropWhileEnd (/='.') path)
-      pure $ Just (ObjNode (M.singleton "relLink" (ObjLeaf (relPath <> "/")) <> x))
+      pure $ Just (ObjNode (M.insert "relLink" (ObjLeaf (relPath <> "/")) x))
     _ -> pure Nothing
 
 type MetaData = Map Text ObjectTree
@@ -30,16 +30,16 @@ data Post = Post MetaData Text
   deriving (Show)
 
 instance ToObjectTree Post where
-  toObjectTree (Post meta content) = ObjNode (meta <> M.singleton "content" (ObjLeaf content))
+  toObjectTree (Post meta content) = ObjNode (M.insert "content" (ObjLeaf content) meta)
 
 post :: Parser Post
 post = do
   meta' <- metaData
   let meta = if isJust (meta' !? "template")
                 then meta'
-                else meta' <> M.singleton "template" (ObjLeaf "post")  -- default template to "post"
-  postContent <- takeText
-  return $ Post meta (convertMD postContent)
+                else M.insert "template" (ObjLeaf "post") meta'  -- default template to "post"
+  postContent <- convertMD <$> takeText
+  return $ Post meta postContent
 
 metaData :: Parser MetaData
 metaData = do
@@ -54,38 +54,36 @@ metaData = do
 
 convertMD :: Text -> Text
 convertMD s = case parseOnly (many' mdElem) (s <> "\n\n") of
-                Right xs -> concat' (takeFn xs)
+                Right xs -> let counter = fromList [("header", 1)] in
+                            mdElems2Text counter (takeFn xs)
                 _ -> ""
 
-convertMD' :: MDElem -> Text
-convertMD' (Header hz x) = tag' ("h" <> T.pack (show hz)) x
-convertMD' HorizontalRule         = "<hr>\n"
-convertMD' (Paragrah xs)          = tag' "p" $ concat' xs
-convertMD' (Blockquotes xs)       = tag'' "blockquote" $ concat' xs
-convertMD' (OrderedList xs)       = tag'' "ol" $ concat' xs
-convertMD' (UnorderedList xs)     = tag'' "ul" $ concat' xs
-convertMD' (ListElem xs)          = tag "li" $ concat' xs
-convertMD' (PlainText x)          = x
-convertMD' (Italic x)             = tag "em" x
-convertMD' (Bold x)               = tag "strong" x
-convertMD' (BoldAndItalic x)      = tag "strong" $ tag "em" x
-convertMD' (Strikethrough x)      = tag "s" x
-convertMD' (Link text url title)  = propTag'' "a" [("href", Just url), ("title", title)] (concat' text)
-convertMD' (Image text url title) = propTag' "img" [("src", Just url), ("alt", Just text), ("title", title)]
-convertMD' (Code x)               = tag "code" $ escapeHTML x
-convertMD' (CodeBlock x)          = tag' "pre" $ tag "code" $ escapeHTML x
-convertMD' (Footnote x)           = propTag "sup" [("id", Just ("fnref:" <> x))] $ propTag "a" [("href", Just ("#fn:" <> x))] x
-convertMD' (FootnoteRef x xs)     = propTag "li" [("id", Just ("fn:" <> x))] $ concat' xs
-convertMD' (FootnoteRefs xs)      = propTag "div" [("id", Just "footnotes")] $ ("<hr/>" <>) $ tag'' "ol" $ concat' xs
+convertMD' :: Map String Int-> MDElem -> ((Map String Int), Text)
+convertMD' counter (Header hz x)          = (,) updatedCounter $ propTag ("h" <> T.pack (show hz)) [("id", headerIdText)] x
+  where headerIdText   = T.pack <$> ((<>) <$> (Just "hdr:") <*> (show <$> (counter !? "header")))
+        updatedCounter = update (Just . (+1)) "header" counter
+convertMD' counter (Paragrah xs)          = (,) counter $ tag'  "p"           $ mdElems2Text counter xs
+convertMD' counter (Blockquotes xs)       = (,) counter $ tag'' "blockquote"  $ mdElems2Text counter xs
+convertMD' counter (OrderedList xs)       = (,) counter $ tag'' "ol"          $ mdElems2Text counter xs
+convertMD' counter (UnorderedList xs)     = (,) counter $ tag'' "ul"          $ mdElems2Text counter xs
+convertMD' counter (ListElem xs)          = (,) counter $ tag   "li"          $ mdElems2Text counter xs
+convertMD' counter (PlainText x)          = (,) counter $ x
+convertMD' counter HorizontalRule         = (,) counter $ "<hr>\n"
+convertMD' counter (Italic x)             = (,) counter $ tag "em" x
+convertMD' counter (Bold x)               = (,) counter $ tag "strong" x
+convertMD' counter (BoldAndItalic x)      = (,) counter $ tag "strong" $ tag "em" x
+convertMD' counter (Strikethrough x)      = (,) counter $ tag "s" x
+convertMD' counter (Link text url title)  = (,) counter $ propTag'' "a" [("href", Just url), ("title", title)] (mdElems2Text counter text)
+convertMD' counter (Image text url title) = (,) counter $ propTag' "img" [("src", Just url), ("alt", Just text), ("title", title)]
+convertMD' counter (Code x)               = (,) counter $ tag "code" $ escapeHTML x
+convertMD' counter (CodeBlock x)          = (,) counter $ tag' "pre" $ tag "code" $ escapeHTML x
+convertMD' counter (Footnote x)           = (,) counter $ propTag "sup" [("id", Just ("fnref:" <> x))] $ propTag "a" [("href", Just ("#fn:" <> x))] x
+convertMD' counter (FootnoteRef x xs)     = (,) counter $ propTag "li" [("id", Just ("fn:" <> x))] $ mdElems2Text counter xs
+convertMD' counter (FootnoteRefs xs)      = (,) counter $ propTag "div" [("id", Just "footnotes")] $ ("<hr/>" <>) $ tag'' "ol" $ mdElems2Text counter xs
 
-concat' :: [MDElem] -> Text
-concat' = concat'' . (convertMD' <$>)
-
-concat'' :: [Text] -> Text
-concat'' x
-  | mconcat x == "" = mconcat x
-  | T.last (mconcat x) == '\n' = T.init $ mconcat x
-  | otherwise = mconcat x
+mdElems2Text :: Map String Int -> [MDElem] -> Text
+mdElems2Text counter elems = snd $ foldl (\(counter', txt) e -> (mdfSnd (txt <>) (convertMD' counter' e))) (counter, "") elems
+  where mdfSnd f (x, y) = (x, f y)
 
 tag :: Text -> Text -> Text
 tag name x = mconcat ["<", name, ">", x, "</", name, ">"]
@@ -127,7 +125,7 @@ escapeHTML x = T.pack $ mconcat $ escapeWord8 <$> T.unpack x
     escapeWord8 '\'' = T.unpack "&#39;"
     escapeWord8 y = [y]
 
--- Make footnotes be suffixes
+-- move footnotes to bottom
 takeFn :: [MDElem] -> [MDElem]
 takeFn xs =
   let fns = foldr (\a b -> case a of
