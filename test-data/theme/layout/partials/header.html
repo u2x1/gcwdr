@@ -12,11 +12,16 @@
   <body>
     <div class="container">
       <div class="sidebar">
-            <nav>
+            <nav id="menu" class="menu">
                 <h3>Gcwdr</h3>
                 <ul>
                     <li><a href="/">Index</a></li>
                 </ul>
+            [- ifdef this.outline -]
+            <div id="outline" class="outline">
+              [- this.outline -]
+            </div>
+            [- else -][- end -]
             </nav>
             &nbsp;
         </div>

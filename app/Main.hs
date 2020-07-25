@@ -19,6 +19,12 @@ parseConfig path = do
     Left errs -> logErrAndTerminate "Parsing config" (show errs)
     Right config -> pure config
 
+test :: IO ()
+test = do
+  config <- Main.parseConfig "config.toml"
+  gnrtPublic config
+  runBlogPreview "test-data/public" 4000
+
 main :: IO ()
 main = do
   args <- getArgs

@@ -26,7 +26,7 @@ nav {
     width: 160px;
 }
 
-nav ul li a, nav ul li a:visited, nav ul li a:active{
+.menu ul li a, .menu ul li a:visited, .menu ul li a:active{
     text-decoration: none;
     font-family: 'Source Sans Pro';
     font-weight: Bold;
@@ -42,6 +42,12 @@ nav ul {
 }
 
 .sidebar ul { padding: 0; }
+
+.outline ul { padding-left: 3px; text-decoration: undeline;}
+
+.outline ul li a, .outline ul li a:visited, .outline ul li a:active{
+  text-decoration: underline;
+}
 
 a { color: #000 }
 

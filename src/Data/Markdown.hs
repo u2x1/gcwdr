@@ -8,7 +8,7 @@ import Data.Text                        (Text)
 import qualified Data.Text        as T
 import Data.Text.IO               as TL (readFile)
 import Data.List                        (intersperse)
-import Data.Either                      (rights, lefts)
+import Data.Either                      (rights, lefts, fromRight)
 import Data.Map.Lazy              as M  (insert, (!?), Map, fromList, update)
 import Data.Maybe
 
@@ -35,11 +35,35 @@ instance ToObjectTree Post where
 post :: Parser Post
 post = do
   meta' <- metaData
-  let meta = if isJust (meta' !? "template")
-                then meta'
-                else M.insert "template" (ObjLeaf "post") meta'  -- default template to "post"
-  postContent <- convertMD <$> takeText
-  return $ Post meta postContent
+  postMDElems <- text2MDElem <$> takeText
+  let postHtml = convertMD postMDElems
+  let outline = getOutlines postMDElems
+  let meta = M.insert "outline" (ObjLeaf outline) $
+               if isJust (meta' !? "template")
+                  then meta'
+                  else M.insert "template" (ObjLeaf "post") meta'  -- default template to "post"
+  return $ Post meta postHtml
+
+getOutlines :: [MDElem] -> Text
+getOutlines elems = go [] headers 0
+  where headers = filter isHeader elems
+        isHeader (Header _ _) = True
+        isHeader _ = False
+        go :: [Int] -> [MDElem] -> Int -> Text
+        go [] [] _ = ""
+        go [] ((Header hdSz hdTx) : xs) ct = "<ul>\n" <> "<li><a href=\"#hdr:" <> T.pack (show ct) <> "\">" <> hdTx <> "</a></li>\n" <>
+                                              go [hdSz] xs (ct + 1)
+        go depth ((Header hdSz hdTx) : xs) ct = 
+          let closure  = (length $ Prelude.takeWhile (> hdSz) depth)
+              newDepth = if hdSz > (head depth)
+                            then hdSz : depth
+                            else drop closure depth in
+          (if closure > 0
+            then mconcat (replicate closure "</ul>")
+            else if newDepth == depth then "" else "<ul>\n") <>
+          "<li><a href=\"#hdr:" <> T.pack (show ct) <> "\">" <> hdTx <> "</a></li>\n" <>
+            go newDepth xs (ct + 1) 
+        go _ _ _ = ""  -- should never be called
 
 metaData :: Parser MetaData
 metaData = do
@@ -52,11 +76,12 @@ metaData = do
           text <- takeTill isEndOfLine <* satisfy isEndOfLine
           return (obj, text)
 
-convertMD :: Text -> Text
-convertMD s = case parseOnly (many' mdElem) (s <> "\n\n") of
-                Right xs -> let counter = fromList [("header", 1)] in
-                            mdElems2Text counter (takeFn xs)
-                _ -> ""
+convertMD :: [MDElem] -> Text
+convertMD elems = let counter = fromList [("header", 0)] in
+                  mdElems2Text counter elems
+
+text2MDElem :: Text -> [MDElem]                
+text2MDElem x = fromRight [] $ takeFn <$> parseOnly (many' mdElem) (x <> "\n\n")
 
 convertMD' :: Map String Int-> MDElem -> ((Map String Int), Text)
 convertMD' counter (Header hz x)          = (,) updatedCounter $ propTag ("h" <> T.pack (show hz)) [("id", headerIdText)] x
