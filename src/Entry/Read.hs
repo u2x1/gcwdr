@@ -104,8 +104,8 @@ fromMaybeM msg _ = logErrAndTerminate msg "encountered Nothing in fromMaybe"
 gnrtHtmls :: FilePath -> FilePath -> [ObjectTree] -> IO ()
 gnrtHtmls outputPath themePath =
   traverse_ (\x -> do
-    title <- fromMaybeM ("getting title from article") (T.unpack <$> (getNode "this" x >>= getLeaf' "title"))
-    relLink <- fromMaybeM ("getting relLink from article") ((outputPath </>) . T.unpack <$> (getNode "this" x >>= getLeaf' "relLink"))
+    title <- fromMaybeM "getting title from article" (T.unpack <$> (getNode "this" x >>= getLeaf' "title"))
+    relLink <- fromMaybeM "getting relLink from article" ((outputPath </>) . T.unpack <$> (getNode "this" x >>= getLeaf' "relLink"))
     logWT Info $ "generating article \"" <> title <> "\""
     html <- getFromTP "articles" =<< (convertTP x <$> T.readFile (getLayoutFile themePath x))
     _ <- createDirectoryIfMissing True relLink

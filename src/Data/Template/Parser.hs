@@ -47,7 +47,7 @@ foreachStmt = do
   placeholder <- takeTill (== ' ')
   _ <- many (char ' ') *> string "in" *> many (char ' ')
   obj <- dotStmt <* many (char ' ') <* string "-]" <* many (satisfy isEndOfLine)
-  inSpaceStmt <- manyTill stmt (string "[- end -]")
+  inSpaceStmt <- manyTill stmt (many (char ' ') *> string "[- end -]")
   return (ForeachStmt placeholder obj inSpaceStmt)
 
 raw :: Parser Stmt

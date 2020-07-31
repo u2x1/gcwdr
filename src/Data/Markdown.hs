@@ -38,14 +38,17 @@ post = do
   postMDElems <- text2MDElem <$> takeText
   let postHtml = convertMD postMDElems
   let outline = getOutlines postMDElems
-  let meta = M.insert "outline" (ObjLeaf outline) $
+  let meta = insert' "outline" outline $
                if isJust (meta' !? "template")
                   then meta'
                   else M.insert "template" (ObjLeaf "post") meta'  -- default template to "post"
   return $ Post meta postHtml
+  where insert' key (Just leaf) = M.insert key (ObjLeaf leaf)
+        insert' _ _ = id
 
-getOutlines :: [MDElem] -> Text
-getOutlines elems = go [] headers 0
+getOutlines :: [MDElem] -> Maybe Text
+getOutlines elems = let x = go [] headers 0 in
+                    if T.null x then Nothing else Just x
   where headers = filter isHeader elems
         isHeader (Header _ _) = True
         isHeader _ = False
@@ -57,11 +60,11 @@ getOutlines elems = go [] headers 0
           let closure  = (length $ Prelude.takeWhile (> hdSz) depth)
               newDepth = if hdSz > (head depth)
                             then hdSz : depth
-                            else drop closure depth in
-          (if closure > 0
-            then mconcat (replicate closure "</ul>")
-            else if newDepth == depth then "" else "<ul>\n") <>
-          "<li><a href=\"#hdr:" <> T.pack (show ct) <> "\">" <> hdTx <> "</a></li>\n" <>
+                            else drop closure depth
+              prefix = if closure > 0
+                          then mconcat (replicate closure "</ul>\n")
+                          else if newDepth == depth then "" else "<ul>\n" in
+          prefix <> "<li><a href=\"#hdr:" <> T.pack (show ct) <> "\">" <> hdTx <> "</a></li>\n" <>
             go newDepth xs (ct + 1) 
         go _ _ _ = ""  -- should never be called
 

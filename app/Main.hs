@@ -6,7 +6,7 @@ import           Entry.Read                (gnrtPublic)
 import           Utils.Server              (runBlogPreview)
 import           Utils.Git                 (deploy, commit)
 import           Utils.Logging             (logErrAndTerminate)
-import           Data.Maybe                (catMaybes)
+import           Data.Maybe                (mapMaybe)
 import           Data.Foldable             (traverse_)
 import           Data.Config.Type
 import           Data.Config
@@ -76,7 +76,7 @@ parseArgs args = Command <$> (parseMode $ filter ((/= '-').head) args) <*> (Righ
                           "h"        -> Right $ Help
                           _          -> Left "Unknown command."
 
-    parseFlag xs = catMaybes $ map getFlag xs
+    parseFlag = mapMaybe getFlag
     getFlag x = case tail x of
                   "g" -> Just PreGenerate
                   _   -> Nothing

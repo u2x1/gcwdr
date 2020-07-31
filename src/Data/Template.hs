@@ -121,9 +121,8 @@ getLeaf' key obj = case getLeaf key obj of
                      _ -> Nothing
 
 singletonObjNode :: [Text] -> Map Text ObjectTree -> Map Text ObjectTree
-singletonObjNode key x = (go key) x
-  where go [] = id
-        go (y:ys) = (singleton y) . ObjNode . (go ys)
+singletonObjNode [] = id
+singletonObjNode (y:ys) = (singleton y) . ObjNode . (singletonObjNode ys)
 
 
 addGlb :: Map Text ObjectTree -> ObjectTree-> ObjectTree
@@ -136,4 +135,4 @@ getDate :: ObjectTree -> Maybe UTCTime
 getDate obj = (\x -> parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (T.unpack x) :: UTCTime) <$> (getLeaf' "date" obj)
 
 getCategory :: ObjectTree -> Maybe Text
-getCategory x = getLeaf' "category" x
+getCategory = getLeaf' "category"

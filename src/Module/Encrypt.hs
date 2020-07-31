@@ -9,11 +9,13 @@ import Data.Template
 import Data.Map
 
 encArticle :: ObjectTree -> Maybe ObjectTree
-encArticle obj = encArticle' obj <$> (getLeaf' "passwd" obj)
+encArticle obj = encArticle' obj <$> getLeaf' "passwd" obj
 
 encArticle' :: ObjectTree -> Text -> ObjectTree
 encArticle' (ObjNode obj) passwd = ObjNode (update f "content" obj)
   where f (ObjLeaf x) = Just . ObjLeaf $ advance passwd x
+        f _ = Nothing
+encArticle' x _ = x
 
 advance :: Text -> Text -> Text
 advance passwd origin = toStrict $ pack $ fmap (\(a, b) -> charPlus a b) s

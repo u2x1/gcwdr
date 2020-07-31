@@ -176,8 +176,8 @@ footnoteRef = do
   where
     addSign xs identity = init xs <>
       case Prelude.last xs of
-        Paragrah x -> [Paragrah (x <> [Link [PlainText ("↩")] ("#fnref:" <> identity) Nothing])]
-        x -> x : [Link [PlainText ("↩")] ("#fnref:" <> identity) Nothing]
+        Paragrah x -> [Paragrah (x <> [Link [PlainText "↩"] ("#fnref:" <> identity) Nothing])]
+        x -> x : [Link [PlainText "↩"] ("#fnref:" <> identity) Nothing]
     elemInside = do
       s <- lookAhead anyChar
       if s == ' '

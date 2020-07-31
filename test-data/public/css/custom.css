@@ -26,6 +26,10 @@ nav {
     width: 160px;
 }
 
+nav ul {
+    list-style: none outside;
+}
+
 .menu ul li a, .menu ul li a:visited, .menu ul li a:active{
     text-decoration: none;
     font-family: 'Source Sans Pro';
@@ -35,10 +39,6 @@ nav {
 .post-list li {
     list-style: none outside;
     padding: 0;
-}
-
-nav ul {
-    list-style: none outside;
 }
 
 .sidebar ul { padding: 0; }
