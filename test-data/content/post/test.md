@@ -1,3 +1,4 @@
+---
 title: test
 date: 2020-04-26
 category: Testing
@@ -85,5 +86,6 @@ Sample text here...
 [^1]: xxfucku
   but nop
   shit
+
   1. shit
   2. fuck

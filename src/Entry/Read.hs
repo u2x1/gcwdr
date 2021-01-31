@@ -64,9 +64,9 @@ gnrtPublic cfg = do
 
 
   --- Convert index.
-  let cates = fmap (\x -> mconcat [ M.singleton "cateName" (ObjLeaf x)
-                                  , M.singleton "posts" (toNodeList (filter ((== Just x).getCategory) postObjs))]) $
-                   catMaybes (nub $ getCategory <$> postObjs)
+  let cates = (\x -> mconcat [ M.singleton "cateName" (ObjLeaf x)
+                                  , M.singleton "posts" (toNodeList (filter ((== Just x).getCategory) postObjs))])
+                 <$> catMaybes (nub $ getCategory <$> postObjs)
   indexHtml <- do
     let indexObjTree = addGlb glbRes $ ObjNode $ mconcat [ M.singleton "posts"       (toNodeList postObjs)
                                                          , M.singleton "categories"  (ObjNodeList cates)]
@@ -81,9 +81,9 @@ gnrtPublic cfg = do
   copyFiles outputPath (themePath </> "static/")   statics
   copyFiles outputPath (atclPath  </> "static/") cStatics
 
-  let articles = (addGlb glbRes) <$> runAtclModule (postObjs <> pageObjs)
+  let articles = addGlb glbRes <$> runAtclModule (postObjs <> pageObjs)
   -- Generate htmls.
-  T.writeFile ((outputDir cfg) </> "index.html") indexHtml  -- Index
+  T.writeFile (outputDir cfg </> "index.html") indexHtml  -- Index
   gnrtHtmls   outputPath themePath articles          -- Posts and pages
   gnrtSitemap outputPath (siteUrl cfg) articles
 
@@ -94,7 +94,7 @@ getFromTP _ (Right x) = pure x
 
 getLayoutFile :: FilePath -> ObjectTree -> FilePath
 getLayoutFile themePath x = case getNode "this" x >>= getLeaf' "template" of
-                         Just t -> (themePath </> "layout" </> T.unpack t <> ".html")
+                         Just t -> themePath </> "layout" </> T.unpack t <> ".html"
                          _ -> themePath </> "layout/nolayout.html"
 
 fromMaybeM :: String -> Maybe a -> IO a
@@ -107,7 +107,7 @@ gnrtHtmls outputPath themePath =
     title <- fromMaybeM "getting title from article" (T.unpack <$> (getNode "this" x >>= getLeaf' "title"))
     relLink <- fromMaybeM "getting relLink from article" ((outputPath </>) . T.unpack <$> (getNode "this" x >>= getLeaf' "relLink"))
     logWT Info $ "generating article \"" <> title <> "\""
-    html <- getFromTP "articles" =<< (convertTP x <$> T.readFile (getLayoutFile themePath x))
+    html <- getFromTP "articles" . convertTP x =<< T.readFile (getLayoutFile themePath x)
     _ <- createDirectoryIfMissing True relLink
     T.writeFile (relLink </> "index.html") html)
 
@@ -127,14 +127,14 @@ copyFiles outputPath inputPath =
         logWT Info $ "copying file " <> source <> " to " <> target
         catchJust (guard . isDoesNotExistError)
                   (copyFile source target)
-                  (\_ -> cr8Dir target >> (copyFile source target))
+                  (\_ -> cr8Dir target >> copyFile source target)
     getTarget = (outputPath </>) . drop (length inputPath)
     cr8Dir path = createDirectoryIfMissing True (dropWhileEnd (/='/') path)
 
 getAllFiles :: FilePath -> IO [FilePath]
 getAllFiles root' = do
   -- Prevent it from walking into ".git", ".stack-work" dirs
-  contents <- filter (not . (isPrefixOf ".")) <$> listDirectory root'
+  contents <- filter (not . isPrefixOf ".") <$> listDirectory root'
   let root = if last root' == '/' then root' else root' <> "/"
       filesAndDirs = (root </>) <$> contents
 
@@ -151,7 +151,7 @@ removeDirContent root = do
   ext <- doesDirectoryExist root
   if ext
      then do
-          contents <- filter (not . (isPrefixOf ".")) <$> getDirectoryContents root
+          contents <- filter (not . isPrefixOf ".") <$> getDirectoryContents root
           let filesAndDirs = (root </>) <$> contents
           dirs <- filterM doesDirectoryExist filesAndDirs
           let files = filter (not . (`elem` dirs)) filesAndDirs

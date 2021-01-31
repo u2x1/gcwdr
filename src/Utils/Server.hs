@@ -22,13 +22,13 @@ runBlogPreview root port = do
           if S.take 3 msg == "GET"
              then do
                 let fileName = let name = (toString $ S.takeWhile (/= 32) (S.drop 4 msg)) in
-                                 path <> name <> if last name == '/' then "" else "index.html"
+                                 path <> name <> if last name == '/' then "index.html" else ""
                 exist <- doesFileExist fileName
                 resp <- if exist
                           then do
                             fCntnt <- S.readFile fileName
                             return $ "HTTP/1.1 200 OK\r\n"
-                                  <> "Content-Type: " <> getFileType fileName <> "\r\n"
+                                  <> "Content-Type: " <> getFileType fileName <> "; charset=utf-8 \r\n"
                                   <> "\r\n"
                                   <> fCntnt
                           else return "HTTP/1.1 400 Not Found"
@@ -63,5 +63,5 @@ getFileType path = case takeWhileEnd (/= '.') path of
                      "js"   -> "application/javascript"
                      _      -> "text/plain"
   where takeWhileEnd f xs = reverse $ go f (reverse xs)
-        go g (y:ys) = if g y then y : (go g ys) else []
+        go g (y:ys) = if g y then y : go g ys else []
         go _ [] = []

@@ -3,6 +3,16 @@ module Data.Markdown where
 
 import Control.Applicative (many)
 import Data.Attoparsec.Text
+    ( many',
+      manyTill,
+      isEndOfLine,
+      char,
+      parseOnly,
+      satisfy,
+      string,
+      takeText,
+      takeTill,
+      Parser )
 import Data.List.Extra            as LE (init, dropWhileEnd)
 import Data.Text                        (Text)
 import qualified Data.Text        as T
@@ -10,11 +20,12 @@ import Data.Text.IO               as TL (readFile)
 import Data.List                        (intersperse)
 import Data.Either                      (rights, lefts, fromRight)
 import Data.Map.Lazy              as M  (insert, (!?), Map, fromList, update)
-import Data.Maybe
+import Data.Maybe ( isJust )
 
-import Data.Markdown.Type
-import Data.Markdown.Parser
+import Data.Markdown.Type ( MDElem(..) )
+import Data.Markdown.Parser ( mdElem )
 import Data.Template.Type
+    ( ToObjectTree(..), ObjectTree(ObjLeaf, ObjNode) )
 
 parsePost :: FilePath -> IO (Maybe ObjectTree)
 parsePost path = do
@@ -49,24 +60,27 @@ post = do
 getOutlines :: [MDElem] -> Maybe Text
 getOutlines elems = let x = go [] headers 0 in
                     if T.null x then Nothing else Just x
+
   where headers = filter isHeader elems
         isHeader (Header _ _) = True
         isHeader _ = False
+        
         go :: [Int] -> [MDElem] -> Int -> Text
-        go [] [] _ = ""
-        go [] ((Header hdSz hdTx) : xs) ct = "<ul>\n" <> "<li><a href=\"#hdr:" <> T.pack (show ct) <> "\">" <> hdTx <> "</a></li>\n" <>
-                                              go [hdSz] xs (ct + 1)
-        go depth ((Header hdSz hdTx) : xs) ct = 
-          let closure  = (length $ Prelude.takeWhile (> hdSz) depth)
-              newDepth = if hdSz > (head depth)
-                            then hdSz : depth
-                            else drop closure depth
-              prefix = if closure > 0
-                          then mconcat (replicate closure "</ul>\n")
-                          else if newDepth == depth then "" else "<ul>\n" in
-          prefix <> "<li><a href=\"#hdr:" <> T.pack (show ct) <> "\">" <> hdTx <> "</a></li>\n" <>
-            go newDepth xs (ct + 1) 
-        go _ _ _ = ""  -- should never be called
+        go depths ((Header hdSz hdTx) : xs) ct = 
+          let closure  = length $ takeWhile (> hdSz) depths
+              newDepth = if null depths || hdSz > head depths
+                            then hdSz : depths
+                            else drop closure depths
+              prefix
+                | closure > 0 = mconcat (replicate closure "</ul>\n")
+                | newDepth == depths = ""
+                | otherwise = "<ul>\n\t"
+              suffix
+                | null xs = mconcat $ replicate (length depths + 1) "</ul>\n"
+                | otherwise = "" in
+          prefix <> "<li><a href=\"#hdr:" <> T.pack (show ct) <> "\">" <> hdTx <> "</a></li>\n" <> suffix
+            <> go newDepth xs (ct + 1) 
+        go _ _ _ = ""
 
 metaData :: Parser MetaData
 metaData = do
@@ -86,9 +100,9 @@ convertMD elems = let counter = fromList [("header", 0)] in
 text2MDElem :: Text -> [MDElem]                
 text2MDElem x = fromRight [] $ takeFn <$> parseOnly (many' mdElem) (x <> "\n\n")
 
-convertMD' :: Map String Int-> MDElem -> ((Map String Int), Text)
+convertMD' :: Map String Int-> MDElem -> (Map String Int, Text)
 convertMD' counter (Header hz x)          = (,) updatedCounter $ propTag ("h" <> T.pack (show hz)) [("id", headerIdText)] x
-  where headerIdText   = T.pack <$> ((<>) <$> (Just "hdr:") <*> (show <$> (counter !? "header")))
+  where headerIdText   = T.pack <$> ((<>) <$> Just "hdr:" <*> (show <$> (counter !? "header")))
         updatedCounter = update (Just . (+1)) "header" counter
 convertMD' counter (Paragrah xs)          = (,) counter $ tag'  "p"           $ mdElems2Text counter xs
 convertMD' counter (Blockquotes xs)       = (,) counter $ tag'' "blockquote"  $ mdElems2Text counter xs
@@ -110,7 +124,7 @@ convertMD' counter (FootnoteRef x xs)     = (,) counter $ propTag "li" [("id", J
 convertMD' counter (FootnoteRefs xs)      = (,) counter $ propTag "div" [("id", Just "footnotes")] $ ("<hr/>" <>) $ tag'' "ol" $ mdElems2Text counter xs
 
 mdElems2Text :: Map String Int -> [MDElem] -> Text
-mdElems2Text counter elems = snd $ foldl (\(counter', txt) e -> (mdfSnd (txt <>) (convertMD' counter' e))) (counter, "") elems
+mdElems2Text counter elems = snd $ foldl (\(counter', txt) e -> mdfSnd (txt <>) (convertMD' counter' e)) (counter, "") elems
   where mdfSnd f (x, y) = (x, f y)
 
 tag :: Text -> Text -> Text
@@ -157,7 +171,7 @@ escapeHTML x = T.pack $ mconcat $ escapeWord8 <$> T.unpack x
 takeFn :: [MDElem] -> [MDElem]
 takeFn xs =
   let fns = foldr (\a b -> case a of
-                              FootnoteRef _ _ -> (Left a) : b
+                              FootnoteRef _ _ -> Left a : b
                               _ -> Right a : b) [] xs in
   case lefts fns of
               [] -> rights fns
