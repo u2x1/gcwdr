@@ -1,7 +1,12 @@
 module Utils.Logging where
 
-import Data.Time
-import System.IO
+import           Data.Time                      ( defaultTimeLocale
+                                                , formatTime
+                                                , getCurrentTime
+                                                )
+import           System.IO                      ( hFlush
+                                                , stdout
+                                                )
 
 data LogTag = Info | Warning | Error | Debug
 
@@ -14,12 +19,11 @@ logWT logTag msg = do
   hFlush stdout
 
 transTag :: LogTag -> String
-transTag tag =
-  case tag of
-    Info    -> "Info"
-    Warning -> "Warning"
-    Error   -> "Error"
-    Debug   -> "Debug"
+transTag tag = case tag of
+  Info    -> "Info"
+  Warning -> "Warning"
+  Error   -> "Error"
+  Debug   -> "Debug"
 
 -- | Log errors with action name and details.
 logErr :: String -> String -> IO ()

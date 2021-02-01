@@ -1,6 +1,6 @@
 module Data.Markdown.Type where
 
-import Data.Text
+import           Data.Text                      ( Text )
 
 data MDElem = Header              Int Text
             | Paragrah            [MDElem]    -- Should contain Italic, Bold, BoldAndItalic, Code

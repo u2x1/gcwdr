@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 09c6bba220bd5732d3827e5cda7717dee41beeee3b4b8f751e0c56734131f5d9
+-- hash: 50df6bea7a780fa02defbff5533908a82c6fea9c9d6afc127293ad23f57b8f60
 
 name:           gcwdr
 version:        0.1.0.0
@@ -54,6 +54,7 @@ library
     , directory
     , extra
     , filepath
+    , fsnotify
     , hspec
     , hspec-discover
     , html-entities
@@ -83,6 +84,7 @@ executable gcwdr-exe
     , directory
     , extra
     , filepath
+    , fsnotify
     , gcwdr
     , hspec
     , hspec-discover
@@ -115,6 +117,7 @@ test-suite gcwdr-test
     , directory
     , extra
     , filepath
+    , fsnotify
     , gcwdr
     , hspec
     , hspec-discover
