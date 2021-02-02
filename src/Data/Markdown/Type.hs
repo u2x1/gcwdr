@@ -2,7 +2,7 @@ module Data.Markdown.Type where
 
 import           Data.Text                      ( Text )
 
-data MDElem = Header              Int Text
+data MDElem = Header              Int Text Int -- The third Int is for href '#hdr:'
             | Paragrah            [MDElem]    -- Should contain Italic, Bold, BoldAndItalic, Code
                                               --                                    , Link, Image
             | PlainText           Text

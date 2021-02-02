@@ -21,7 +21,7 @@ packSitemap site infos =
   "\
   \<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
   \<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
-    <> mconcat ((info2xml site) <$> infos)
+    <> mconcat (info2xml site <$> infos)
     <> "</urlset>"
 
 info2xml :: Text -> URLInfo -> Text
@@ -50,8 +50,7 @@ data URLInfo = URLInfo
 getSitemap :: Text -> [ObjectTree] -> IO Text
 getSitemap site objs = do
   let infos = catMaybes $ getUrlInfo <$> objs
-  curTime <-
-    (pack . (formatTime defaultTimeLocale "%Y-%m-%d")) <$> getCurrentTime
+  curTime <- pack . formatTime defaultTimeLocale "%Y-%m-%d" <$> getCurrentTime
   let siteUrl = URLInfo "" curTime 8
   let sitemap = packSitemap site (siteUrl : infos)
   pure sitemap
@@ -60,9 +59,6 @@ getUrlInfo :: ObjectTree -> Maybe URLInfo
 getUrlInfo obj = URLInfo <$> l <*> m <*> p
  where
   l = getNode "this" obj >>= getLeaf' "relLink"
-  m =
-    pack
-      <$> (fmap (formatTime defaultTimeLocale "%Y-%m-%d")
-                (getDate =<< (getNode "this" obj))
-          )
+  m = pack <$> fmap (formatTime defaultTimeLocale "%Y-%m-%d")
+                    (getDate =<< getNode "this" obj)
   p = Just 6

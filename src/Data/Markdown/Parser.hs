@@ -18,7 +18,6 @@ import           Data.Attoparsec.Text          as APT
                                                 , isEndOfLine
                                                 , parseOnly
                                                 , satisfy
-                                                , skipMany
                                                 , string
                                                 , takeTill
                                                 , takeWhile
@@ -29,9 +28,9 @@ import           Data.Char                      ( isDigit
                                                 )
 import           Data.Text                     as T
                                                 ( Text
-                                                , last
                                                 , pack
                                                 , singleton
+                                                , unlines
                                                 )
 
 import           Data.Markdown.Type             ( MDElem
@@ -56,6 +55,14 @@ import           Data.Markdown.Type             ( MDElem
                                                   )
                                                 )
 import           Prelude                 hiding ( takeWhile )
+
+-- | Post staff
+
+
+
+
+-- | Markdown staff
+
 mdElem :: Parser MDElem
 mdElem =
   footnoteRef
@@ -66,21 +73,6 @@ mdElem =
     <|> header
     <|> hrztRule
     <|> para
-
-escapeChar :: Parser MDElem
-escapeChar = do
-  _ <- char '\\'
-  x <- T.singleton <$> satisfy (`elem` ("\\`*_{[(#+-.!|" :: String))
-  return (PlainText x)
-
-para :: Parser MDElem
-para = Paragrah <$> do
-  text  <- takeTill isEndOfLine
-  paras <- case parseOnly (some paraElem) text of
-    Right x -> pure x
-    Left  x -> fail x
-  _ <- many' (satisfy isEndOfLine)
-  return paras
 
 paraElem :: Parser MDElem
 paraElem =
@@ -94,6 +86,22 @@ paraElem =
     <|> image
     <|> code
     <|> plainText
+
+
+escapeChar :: Parser MDElem
+escapeChar = do
+  _ <- char '\\'
+  x <- T.singleton <$> satisfy (`elem` ("\\`*_{[(#+-.!|" :: String))
+  return (PlainText x)
+
+para :: Parser MDElem
+para = Paragrah <$> do
+  text  <- takeTill isEndOfLine
+  paras <- case parseOnly (some paraElem) text of
+    Right x -> pure x
+    Left  x -> fail x
+  _ <- many' eol
+  return paras
 
 plainText :: Parser MDElem
 plainText = PlainText <$> do
@@ -164,70 +172,60 @@ code = do
 
 codeBlock :: Parser MDElem
 codeBlock = do
-  _ <- string "```" <* skipEndOfLine
+  _ <- string "```" <* eol
   CodeBlock
     .   pack
-    <$> (manyTill anyChar (many (char '\n') >> many (char ' ') >> string "```")
-        <* skipEndOfLine
-        )
+    <$> (manyTill anyChar (many eol >> many (char ' ') >> string "```") <* eol)
 
 hrztRule :: Parser MDElem
 hrztRule = do
-  _ <- count 3 (satisfy isAstrOrUdsOrDash) *> satisfy isEndOfLine
-  HorizontalRule <$ skipEndOfLine
+  _ <- count 3 (satisfy isAstrOrUdsOrDash) *> eol
+  HorizontalRule <$ eol
   where isAstrOrUdsOrDash w = isAstrOrUds w || w == '-'
 
-skipEndOfLine :: Parser [Char]
-skipEndOfLine = many (satisfy isEndOfLine)
+eol :: Parser Char
+eol = satisfy isEndOfLine
 
 blockquotes :: Parser MDElem
 blockquotes = do
-  cnt  <- length <$> lookAhead (some takePrefix)
-  text <- mconcat <$> some
-    (   (<> "\n")
-    <$> (count cnt takePrefix *> takeTill isEndOfLine <* many'
-          (satisfy isEndOfLine)
-        )
-    )
+  cnt  <- length <$> lookAhead (some prefix <* some (char ' '))
+  text <-
+    T.unlines <$> some
+      (count cnt prefix *> some (char ' ') *> takeTill isEndOfLine <* many' eol)
+
   case parseOnly (some mdElem) text of
     Right mdElems -> return (Blockquotes mdElems)
     Left  _       -> return (Blockquotes [PlainText text])
-  where takePrefix = char '>' <* many (char ' ')
+  where prefix = char '>'
 
 orderedList :: Parser MDElem
 orderedList = OrderedList . mconcat <$> some
   (some (satisfy isDigit) *> char '.' *> listElem)
 
 unorderedList :: Parser MDElem
-unorderedList =
-  UnorderedList . mconcat <$> some (satisfy isAstrOrDash *> listElem)
-
--- orderedList' :: Int -> Parser MDElem
--- orderedList' indent = OrderedList . mconcat <$> some (count indent (char ' ') *> some (satisfy isDigit) *> char '.' *> listElem indent)
-
--- unorderedList' :: Int ->  Parser MDElem
--- unorderedList' indent = UnorderedList . mconcat <$> (some (count indent (char ' ') *> satisfy isAstrOrDash *> listElem indent) <* skipEndOfLine)
+unorderedList = UnorderedList . mconcat <$> some
+  (satisfy (\w -> w == '*' || w == '+' || w == '-') *> listElem)
 
 listElem :: Parser [MDElem]
 listElem = do
   _    <- some (char ' ')
-  text <- takeTill isEndOfLine <* many' (satisfy isEndOfLine)
+  text <- takeTill isEndOfLine <* many' eol
   let lElem = case parseOnly (some paraElem) text of
         Right p -> p
         Left  _ -> [PlainText text]
 
-  s <- lookAhead anyChar
+  s <- ('x' <$ endOfInput) <|> lookAhead anyChar
   if s == ' '
     then do
       spaceCnt <- Prelude.length <$> lookAhead (some (char ' '))
       let indent = T.pack $ take spaceCnt [' ', ' ' ..]
-      lines <- some
+      line <- some
         (   string indent
         *>  takeTill (== '\n')
         >>= (\x -> (x <>) <$> takeWhile (== '\n'))
         )
 
-      let innerElems = case parseOnly (some mdElem) (mconcat lines) of
+      let innerElems = case parseOnly (some mdElem) (T.unlines line) of
             Right p -> p
             Left  _ -> [PlainText text]
       return $ ListElem lElem : innerElems
@@ -237,8 +235,8 @@ header :: Parser MDElem
 header = do
   headerSize <- length <$> some (char '#')
   _          <- some (char ' ')
-  text       <- takeTill isEndOfLine <* skipEndOfLine
-  return (Header headerSize text)
+  text       <- takeTill isEndOfLine <* many eol
+  return (Header headerSize text 0)
 
 footnote :: Parser MDElem
 footnote = Footnote <$> (string "[^" *> takeTill (== ']') <* char ']')
@@ -246,11 +244,11 @@ footnote = Footnote <$> (string "[^" *> takeTill (== ']') <* char ']')
 footnoteRef :: Parser MDElem
 footnoteRef = do
   identity <- string "[^" *> takeTill (== ']') <* string "]:" <* many (char ' ')
-  fstElem  <- takeTill isEndOfLine <* many (satisfy isEndOfLine)
+  fstElem  <- takeTill isEndOfLine <* many eol
   fElem    <- case parseOnly mdElem fstElem of
     Right x -> pure [x]
     _       -> pure []
-  iElems <- mconcat <$> many (elemInside <* many (satisfy isEndOfLine))
+  iElems <- mconcat <$> many (elemInside <* many eol)
   return (FootnoteRef identity (addSign (fElem <> iElems) identity))
 
  where
@@ -272,7 +270,3 @@ footnoteRef = do
 -- * or _
 isAstrOrUds :: Char -> Bool
 isAstrOrUds w = w == '_' || w == '*'
-
--- * or -
-isAstrOrDash :: Char -> Bool
-isAstrOrDash w = w == '*' || w == '+' || w == '-'

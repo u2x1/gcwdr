@@ -115,11 +115,10 @@ watchChanges cfg =
   let ctDir = articleDir cfg
       tmDir = themeDir cfg
   in  withManager $ \man -> do
-        let forkWatch dir =
-              forkIO $ () <$ watchTree man dir (const True) recvChange
+        let forkWatch dir = watchTree man dir (const True) recvChange
             recvChange = const $ do
               logWT Info "source directory polluted, regenerating sites"
-              gnrtPublic cfg
+              () <$ forkIO (gnrtPublic cfg)
 
         _ <- forkWatch ctDir
         _ <- forkWatch tmDir

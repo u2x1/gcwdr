@@ -41,6 +41,9 @@ import           Data.Template.Type             ( ObjectTree(ObjLeaf, ObjNode)
                                                 , ToObjectTree(..)
                                                 )
 
+markdown2Html :: Text -> Text
+markdown2Html = mdElems2Html . text2MDElems
+
 parsePost :: FilePath -> IO (Maybe ObjectTree)
 parsePost path = do
   s <- TL.readFile path
@@ -54,57 +57,19 @@ parsePost path = do
       pure $ Just (ObjNode (M.insert "relLink" (ObjLeaf (relPath <> "/")) x))
     _ -> pure Nothing
 
-type MetaData = Map Text ObjectTree
-data Post = Post MetaData Text
-  deriving Show
-
-instance ToObjectTree Post where
-  toObjectTree (Post meta content) =
-    ObjNode (M.insert "content" (ObjLeaf content) meta)
-
 post :: Parser Post
 post = do
   meta'       <- metaData
-  postMDElems <- text2MDElem <$> takeText
-  let postHtml = convertMD postMDElems
-  let outline  = getOutlines postMDElems
-  let meta = insert' "outline" outline $ if isJust (meta' !? "template")
+  postMDElems <- text2MDElems <$> takeText
+  let content = mdElems2Html postMDElems
+      outline = getOutline postMDElems
+      meta = insert' "outline" outline $ if isJust (meta' !? "template")
         then meta'
         else M.insert "template" (ObjLeaf "post") meta'  -- default template to "post"
-  return $ Post meta postHtml
+  return $ Post meta content
  where
-  insert' key (Just leaf) = M.insert key (ObjLeaf leaf)
-  insert' _   _           = id
-
-getOutlines :: [MDElem] -> Maybe Text
-getOutlines elems =
-  let x = go [] headers 0 in if T.null x then Nothing else Just x
-
- where
-  headers = filter isHeader elems
-  isHeader (Header _ _) = True
-  isHeader _            = False
-
-  go :: [Int] -> [MDElem] -> Int -> Text
-  go depths ((Header hdSz hdTx) : xs) ct =
-    let closure  = length $ takeWhile (> hdSz) depths
-        newDepth = if null depths || hdSz > head depths
-          then hdSz : depths
-          else drop closure depths
-        prefix | closure > 0        = mconcat (replicate closure "</ul>\n")
-               | newDepth == depths = ""
-               | otherwise          = "<ul>\n\t"
-        suffix | null xs   = mconcat $ replicate (length depths + 1) "</ul>\n"
-               | otherwise = ""
-    in  prefix
-          <> "<li><a href=\"#hdr:"
-          <> T.pack (show ct)
-          <> "\">"
-          <> hdTx
-          <> "</a></li>\n"
-          <> suffix
-          <> go newDepth xs (ct + 1)
-  go _ _ _ = ""
+  insert' _   ""           = id
+  insert' key txt = M.insert key (ObjLeaf txt)
 
 metaData :: Parser MetaData
 metaData = do
@@ -118,68 +83,61 @@ metaData = do
     text <- takeTill isEndOfLine <* satisfy isEndOfLine
     return (obj, text)
 
-convertMD :: [MDElem] -> Text
-convertMD elems =
-  let counter = fromList [("header", 0)] in mdElems2Text counter elems
+text2MDElems :: Text -> [MDElem]
+text2MDElems x =
+  idHdr 0 . moveFn2Bottom $ rawMdElem
+  where
+    rawMdElem = fromRight [] $ parseOnly (many' mdElem) (x <> "\n\n")
+    moveFn2Bottom xs =
+      let fns = map
+            (\a ->
+              case a of
+                  FootnoteRef{} -> Left a
+                  _             -> Right a)
+            xs
+      in rights fns <> pure (FootnoteRefs $ lefts fns)
+    idHdr i (hdr@(Header a b _):xs) = Header a b i : idHdr  (i + 1) xs
+    idHdr i (x:xs) = x : idHdr i xs
+    idHdr i [] = []
+ 
 
-text2MDElem :: Text -> [MDElem]
-text2MDElem x =
-  fromRight [] $ takeFn <$> parseOnly (many' mdElem) (x <> "\n\n")
+mdElems2Html :: [MDElem] -> Text
+mdElems2Html = mconcat . fmap mdElem2Html
 
-convertMD' :: Map String Int -> MDElem -> (Map String Int, Text)
-convertMD' counter (Header hz x) = (,) updatedCounter
-  $ propTag ("h" <> T.pack (show hz)) [("id", headerIdText)] x
- where
-  headerIdText =
-    T.pack <$> ((<>) <$> Just "hdr:" <*> (show <$> (counter !? "header")))
-  updatedCounter = update (Just . (+ 1)) "header" counter
-convertMD' counter (Paragrah xs) =
-  (,) counter $ tag' "p" $ mdElems2Text counter xs
-convertMD' counter (Blockquotes xs) =
-  (,) counter $ tag'' "blockquote" $ mdElems2Text counter xs
-convertMD' counter (OrderedList xs) =
-  (,) counter $ tag'' "ol" $ mdElems2Text counter xs
-convertMD' counter (UnorderedList xs) =
-  (,) counter $ tag'' "ul" $ mdElems2Text counter xs
-convertMD' counter (ListElem xs) =
-  (,) counter $ tag "li" $ mdElems2Text counter xs
-convertMD' counter (PlainText x)         = (,) counter $ x
-convertMD' counter HorizontalRule        = (,) counter $ "<hr>\n"
-convertMD' counter (Italic        x    ) = (,) counter $ tag "em" x
-convertMD' counter (Bold          x    ) = (,) counter $ tag "strong" x
-convertMD' counter (BoldAndItalic x) = (,) counter $ tag "strong" $ tag "em" x
-convertMD' counter (Strikethrough x    ) = (,) counter $ tag "s" x
-convertMD' counter (Link text url title) = (,) counter $ propTag''
-  "a"
-  [("href", Just url), ("title", title)]
-  (mdElems2Text counter text)
-convertMD' counter (Image text url title) = (,) counter
-  $ propTag' "img" [("src", Just url), ("alt", Just text), ("title", title)]
-convertMD' counter (Code x) = (,) counter $ tag "code" $ escapeHTML x
-convertMD' counter (CodeBlock x) =
-  (,) counter $ tag' "pre" $ tag "code" $ escapeHTML x
-convertMD' counter (Footnote x) =
-  (,) counter $ propTag "sup" [("id", Just ("fnref:" <> x))] $ propTag
-    "a"
-    [("href", Just ("#fn:" <> x))]
-    x
-convertMD' counter (FootnoteRef x xs) =
-  (,) counter $ propTag "li" [("id", Just ("fn:" <> x))] $ mdElems2Text
-    counter
-    xs
-convertMD' counter (FootnoteRefs xs) =
-  (,) counter
-    $ propTag "div" [("id", Just "footnotes")]
+mdElem2Html :: MDElem -> Text
+mdElem2Html (Header hz x hid) = propTag ("h" <> T.pack (show hz))
+                                        [("id", headerIdText)]
+                                        x
+  where headerIdText = Just . T.pack $ "hdr:" <> show hid
+mdElem2Html (Paragrah      xs) = tag' "p" $ mdElems2Html xs
+mdElem2Html (Blockquotes   xs) = tag'' "blockquote" $ mdElems2Html xs
+mdElem2Html (OrderedList   xs) = tag'' "ol" $ mdElems2Html xs
+mdElem2Html (UnorderedList xs) = tag'' "ul" $ mdElems2Html xs
+mdElem2Html (ListElem      xs) = tag "li" $ mdElems2Html xs
+mdElem2Html (PlainText     x ) = x
+mdElem2Html HorizontalRule     = "<hr>\n"
+mdElem2Html (Italic        x)  = tag "em" x
+mdElem2Html (Bold          x)  = tag "strong" x
+mdElem2Html (BoldAndItalic x)  = tag "strong" $ tag "em" x
+mdElem2Html (Strikethrough x)  = tag "s" x
+mdElem2Html (Link text url title) =
+  propTag'' "a" [("href", Just url), ("title", title)] (mdElems2Html text)
+mdElem2Html (Image text url title) =
+  propTag' "img" [("src", Just url), ("alt", Just text), ("title", title)]
+mdElem2Html (Code      x) = tag "code" $ escapeHTML x
+mdElem2Html (CodeBlock x) = tag' "pre" $ tag "code" $ escapeHTML x
+mdElem2Html (Footnote x) =
+  propTag "sup" [("id", Just ("fnref:" <> x))]
+    $ propTag "a" [("href", Just ("#fn:" <> x))] x
+mdElem2Html (FootnoteRef x xs) =
+  propTag "li" [("id", Just ("fn:" <> x))] $ mdElems2Html xs
+mdElem2Html (FootnoteRefs []) = ""
+mdElem2Html (FootnoteRefs xs) =
+  propTag "div" [("id", Just "footnotes")]
     $ ("<hr/>" <>)
     $ tag'' "ol"
-    $ mdElems2Text counter xs
+    $ mdElems2Html xs
 
-mdElems2Text :: Map String Int -> [MDElem] -> Text
-mdElems2Text counter elems = snd $ foldl
-  (\(counter', txt) e -> mdfSnd (txt <>) (convertMD' counter' e))
-  (counter, "")
-  elems
-  where mdfSnd f (x, y) = (x, f y)
 
 tag :: Text -> Text -> Text
 tag name x = mconcat ["<", name, ">", x, "</", name, ">"]
@@ -242,16 +200,41 @@ escapeHTML x = T.pack $ mconcat $ escapeWord8 <$> T.unpack x
   escapeWord8 '\'' = T.unpack "&#39;"
   escapeWord8 y    = [y]
 
--- move footnotes to bottom
-takeFn :: [MDElem] -> [MDElem]
-takeFn xs =
-  let fns = foldr
-        (\a b -> case a of
-          FootnoteRef _ _ -> Left a : b
-          _               -> Right a : b
-        )
-        []
-        xs
-  in  case lefts fns of
-        []   -> rights fns
-        lFns -> rights fns <> pure (FootnoteRefs lFns)
+getOutline :: [MDElem] -> Text
+getOutline elems = go [] headers
+
+ where
+  headers = filter isHeader elems
+  isHeader Header{} = True
+  isHeader _        = False
+
+  go :: [Int] -> [MDElem] -> Text
+  go depths ((Header hdSz hdTx hid) : xs) =
+    let closure  = length $ takeWhile (> hdSz) depths
+        newDepth = if null depths || hdSz > head depths
+          then hdSz : depths
+          else drop closure depths
+        prefix | closure > 0        = mconcat (replicate closure "</ul>\n")
+               | newDepth == depths = ""
+               | otherwise          = "<ul>\n\t"
+        suffix | null xs   = mconcat $ replicate (length depths + 1) "</ul>\n"
+               | otherwise = ""
+    in  prefix
+          <> "<li><a href=\"#hdr:"
+          <> T.pack (show hid)
+          <> "\">"
+          <> hdTx
+          <> "</a></li>\n"
+          <> suffix
+          <> go newDepth xs
+  go _ _ = ""
+
+
+type MetaData = Map Text ObjectTree
+
+data Post = Post MetaData Text
+  deriving Show
+
+instance ToObjectTree Post where
+  toObjectTree (Post meta content) =
+    ObjNode (M.insert "content" (ObjLeaf content) meta)
