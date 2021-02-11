@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 50df6bea7a780fa02defbff5533908a82c6fea9c9d6afc127293ad23f57b8f60
+-- hash: 2174c2afbe146e2528ad08b621de2982359fff16352a5667c1caa7ffdddc17f1
 
 name:           gcwdr
 version:        0.1.0.0
@@ -37,9 +37,10 @@ library
       Entry.Read
       Module.Console
       Module.Encrypt
+      Server.Admin
+      Server.Preview
       Utils.Git
       Utils.Logging
-      Utils.Server
       Utils.SitemapGenerator
   other-modules:
       Paths_gcwdr
@@ -47,19 +48,23 @@ library
       src
   build-depends:
       QuickCheck
+    , aeson
     , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
     , directory
     , extra
+    , filemanip
     , filepath
     , fsnotify
     , hspec
     , hspec-discover
     , html-entities
+    , http-types
     , network
     , process
+    , scotty
     , stringsearch
     , text
     , time
@@ -77,20 +82,24 @@ executable gcwdr-exe
   ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
+    , aeson
     , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
     , directory
     , extra
+    , filemanip
     , filepath
     , fsnotify
     , gcwdr
     , hspec
     , hspec-discover
     , html-entities
+    , http-types
     , network
     , process
+    , scotty
     , stringsearch
     , text
     , time
@@ -110,20 +119,24 @@ test-suite gcwdr-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
+    , aeson
     , attoparsec
     , base >=4.7 && <5
     , bytestring
     , containers
     , directory
     , extra
+    , filemanip
     , filepath
     , fsnotify
     , gcwdr
     , hspec
     , hspec-discover
     , html-entities
+    , http-types
     , network
     , process
+    , scotty
     , stringsearch
     , text
     , time

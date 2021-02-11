@@ -27,7 +27,6 @@ import           Data.Map.Lazy                 as M
                                                 , Map
                                                 , fromList
                                                 , insert
-                                                , update
                                                 )
 import           Data.Maybe                     ( isJust )
 import           Data.Text                      ( Text )
@@ -84,10 +83,10 @@ metaData = do
     return (obj, text)
 
 text2MDElems :: Text -> [MDElem]
-text2MDElems x =
+text2MDElems text =
   idHdr 0 . moveFn2Bottom $ rawMdElem
   where
-    rawMdElem = fromRight [] $ parseOnly (many' mdElem) (x <> "\n\n")
+    rawMdElem = fromRight [] $ parseOnly (many' mdElem) (text <> "\n\n")
     moveFn2Bottom xs =
       let fns = map
             (\a ->
@@ -96,9 +95,9 @@ text2MDElems x =
                   _             -> Right a)
             xs
       in rights fns <> pure (FootnoteRefs $ lefts fns)
-    idHdr i (hdr@(Header a b _):xs) = Header a b i : idHdr  (i + 1) xs
+    idHdr i ((Header a b _):xs) = Header a b i : idHdr  (i + 1) xs
     idHdr i (x:xs) = x : idHdr i xs
-    idHdr i [] = []
+    idHdr _ [] = []
  
 
 mdElems2Html :: [MDElem] -> Text

@@ -16,7 +16,7 @@ import           System.Environment             ( getArgs )
 import           Utils.Git                      ( commit
                                                 , deploy
                                                 )
-import           Utils.Server                   ( runBlogPreview )
+import           Server.Preview                 ( previewServer )
 
 import           Control.Concurrent             ( forkIO
                                                 , threadDelay
@@ -42,7 +42,7 @@ test :: IO ()
 test = do
   config <- Main.parseConfig "config.toml"
   gnrtPublic config
-  runBlogPreview "test-data/public" 4000
+  previewServer "test-data/public" 4000
 
 main :: IO ()
 main = do
@@ -61,7 +61,7 @@ main = do
   case cmds of
     Right (Command Generate _) -> gnrtPublic config
     Right (Command Server _) ->
-      runBlogPreview (outputDir config) (localServerPort config)
+      previewServer (outputDir config) (localServerPort config)
     Right (Command (Commit msg) _) -> commit msg (outputDir config)
     Right (Command Deploy       _) -> deploy (outputDir config)
     Right (Command Help         _) -> putStrLn usage

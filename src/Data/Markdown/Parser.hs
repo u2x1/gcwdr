@@ -64,7 +64,7 @@ import           Prelude                 hiding ( takeWhile )
 -- | Markdown staff
 
 mdElem :: Parser MDElem
-mdElem =
+mdElem = many' eol >>
   footnoteRef
     <|> blockquotes
     <|> orderedList
@@ -96,6 +96,7 @@ escapeChar = do
 
 para :: Parser MDElem
 para = Paragrah <$> do
+
   text  <- takeTill isEndOfLine
   paras <- case parseOnly (some paraElem) text of
     Right x -> pure x
@@ -172,7 +173,7 @@ code = do
 
 codeBlock :: Parser MDElem
 codeBlock = do
-  _ <- string "```" <* eol
+  _ <- string "```" <* many eol
   CodeBlock
     .   pack
     <$> (manyTill anyChar (many eol >> many (char ' ') >> string "```") <* eol)
