@@ -1,5 +1,7 @@
 # gcwdr
 
+*(partially implemented)*
+
 for each markdown article object, you are able to access these properties in template:
 
 ```
@@ -7,7 +9,7 @@ global {
   config {
     siteTitle: "xxxxx",
     siteUrl: "https://xxx.com/",
-    siteMenus: [{ name: "xx", loc: "/xx/xxx" }]
+    siteMenus: [{ menuName: "xx", menuLoc: "/xx/xxx" }]
   },
   partials {
     xx1.html: "xxx<xx>xxxx</xx>xxx",

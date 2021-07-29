@@ -15,7 +15,7 @@ configCodec =
   Config
     <$> Toml.text "title"
     .=  siteTitle
-    <*> Toml.text "site"
+    <*> Toml.text "url"
     .=  siteUrl
     <*> Toml.list menuC "menu"
     .=  siteMenus
