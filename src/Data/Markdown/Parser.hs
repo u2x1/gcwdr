@@ -96,7 +96,6 @@ escapeChar = do
 
 para :: Parser MDElem
 para = Paragrah <$> do
-
   text  <- takeTill isEndOfLine
   paras <- case parseOnly (some paraElem) text of
     Right x -> pure x

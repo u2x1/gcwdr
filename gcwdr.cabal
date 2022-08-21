@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.7.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2174c2afbe146e2528ad08b621de2982359fff16352a5667c1caa7ffdddc17f1
+-- hash: 5a5d9755cf437d1441f932ff462f49bd8c72171389514111acaada7842afc7bd
 
 name:           gcwdr
 version:        0.1.0.0
@@ -46,6 +46,7 @@ library
       Paths_gcwdr
   hs-source-dirs:
       src
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       QuickCheck
     , aeson
@@ -68,7 +69,7 @@ library
     , stringsearch
     , text
     , time
-    , tomland >=1.3.0.0
+    , tomland
     , utf8-string
     , word8
   default-language: Haskell2010
@@ -79,7 +80,7 @@ executable gcwdr-exe
       Paths_gcwdr
   hs-source-dirs:
       app
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
     , aeson
@@ -103,7 +104,7 @@ executable gcwdr-exe
     , stringsearch
     , text
     , time
-    , tomland >=1.3.0.0
+    , tomland
     , utf8-string
     , word8
   default-language: Haskell2010
@@ -116,7 +117,7 @@ test-suite gcwdr-test
       Paths_gcwdr
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       QuickCheck
     , aeson
@@ -140,7 +141,7 @@ test-suite gcwdr-test
     , stringsearch
     , text
     , time
-    , tomland >=1.3.0.0
+    , tomland
     , utf8-string
     , word8
   default-language: Haskell2010

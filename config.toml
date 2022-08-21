@@ -1,5 +1,5 @@
 title      = "Test Page"
-site       = "https://www.example.com/"
+url        = "http://localhost:4000/"
 articleDir = "test-data/content/"
 themeDir   = "test-data/theme/"
 outputDir  = "test-data/public/"

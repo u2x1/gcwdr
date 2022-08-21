@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Markdown where
 
-import           Control.Applicative            ( many )
+import           Control.Applicative            ( many, some )
 import           Data.Attoparsec.Text           ( Parser
                                                 , char
                                                 , isEndOfLine
@@ -72,14 +72,14 @@ post = do
 
 metaData :: Parser MetaData
 metaData = do
-  _   <- many (string "---\n")
+  _   <- many (string "---") <* some (satisfy isEndOfLine)
   els <- manyTill el (string "---")
-  _   <- many (char '\n')
+  _   <- many (satisfy isEndOfLine)
   return (ObjLeaf <$> fromList els)
  where
   el = do
     obj  <- takeTill (== ':') <* char ':' <* many (char ' ')
-    text <- takeTill isEndOfLine <* satisfy isEndOfLine
+    text <- takeTill isEndOfLine <* (many (satisfy isEndOfLine))
     return (obj, text)
 
 text2MDElems :: Text -> [MDElem]

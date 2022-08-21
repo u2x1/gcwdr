@@ -5,22 +5,22 @@
 
 packages:
 - completed:
-    hackage: tomland-1.3.0.0@sha256:441c70c7b15d64e3011eb77637d3d566bc1abd8ec7c401656e16a6c4edd31676,8607
     pantry-tree:
-      size: 6357
-      sha256: cf9f202221824aa16ebe5f4d523945842dc1b0c70aadf27a057a6f75cfe90a41
+      sha256: 0e3bdbd32955944c3ee9ff0f47dc765d25ab6be4a336c6d735eed8eb9bc8ce27
+      size: 6430
+    hackage: tomland-1.3.3.1@sha256:83a8fd26a97164100541f7b26aa40ffdc6f230b21e94cbb3eae1fb7093c4356e,8924
   original:
-    hackage: tomland-1.3.0.0@sha256:441c70c7b15d64e3011eb77637d3d566bc1abd8ec7c401656e16a6c4edd31676,8607
+    hackage: tomland-1.3.3.1@sha256:83a8fd26a97164100541f7b26aa40ffdc6f230b21e94cbb3eae1fb7093c4356e,8924
 - completed:
-    hackage: validation-selective-0.1.0.0@sha256:db12d924888dcf4ab31a1af74ce34ff68dfe07a2fead8688782fb37e62d8eca6,3702
     pantry-tree:
+      sha256: cf625f9876fb4122bf19ba3d78f480966882c4130c3824765fd04730b32cc719
       size: 696
-      sha256: d1ccc6330b4e6d055d928981fdd5f06f1d7cc44df563975cbe8aa7337e1e77d1
+    hackage: validation-selective-0.1.0.2@sha256:c878846bfffeba69efa3b4866025f249656e0e0a129fed6d446eb602382d328b,3856
   original:
-    hackage: validation-selective-0.1.0.0@sha256:db12d924888dcf4ab31a1af74ce34ff68dfe07a2fead8688782fb37e62d8eca6,3702
+    hackage: validation-selective-0.1.0.2@sha256:c878846bfffeba69efa3b4866025f249656e0e0a129fed6d446eb602382d328b,3856
 snapshots:
 - completed:
-    size: 496111
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/14.yaml
-    sha256: c442d702d66b8c129b3473a32c609050aabf1dc2f8e8502402c143271a8fb141
-  original: lts-15.14
+    sha256: be747117bed6d462806c883352c3206325b23480825103f5c87884e97e52819a
+    size: 619173
+    url: https://mirrors.tuna.tsinghua.edu.cn/stackage/stackage-snapshots/lts/19/20.yaml
+  original: lts-19.20
