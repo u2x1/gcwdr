@@ -2,6 +2,7 @@
 module Data.Template.Parser where
 
 import           Control.Applicative            ( Alternative((<|>), many, some)
+                                                , liftA2
                                                 )
 import           Data.Attoparsec.Text           ( Parser
                                                 , anyChar
@@ -50,9 +51,18 @@ ifdefStmt :: Parser Stmt
 ifdefStmt = do
   _          <- string "[- ifdef" *> many (char ' ')
   obj <- dotStmt <* many (char ' ') <* string "-]" <* many (satisfy isEndOfLine)
-  trueStmts  <- manyTill stmt (string "[- else -]")
-  falseStmts <- manyTill stmt (string "[- end -]")
-  return (IfdefStmt obj trueStmts falseStmts)
+  (aStmts, flag)  <- manyTill'' stmt end
+  if flag == "[- end -]"
+    then return (IfdefStmt obj aStmts [])
+    else do
+      falseStmts <- manyTill stmt (string "[- end -]")
+      return (IfdefStmt obj aStmts falseStmts)
+  where
+    end = ((string "[- end -]") <|> (string "[- else -]"))
+    manyTill'' :: Parser a -> Parser b -> Parser ([a], b)
+    manyTill'' p e = let scan = (e >>= (\x -> pure ([], x)))
+                            <|> (liftA2 (\x (a, b) -> (x:a, b)) p scan) in
+        scan
 
 
 

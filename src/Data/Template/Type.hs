@@ -24,16 +24,16 @@ data ObjectTree = ObjNode (Map Text ObjectTree)
   deriving (Show)
 
 showObjTree :: ObjectTree -> String
-showObjTree (ObjLeaf x) = "Leaf " <> unpack x
+showObjTree (ObjLeaf x) = unpack x
 showObjTree (ObjNode xs) =
-  "Node {"
+  "{"
     <> mconcat (intersperse ", " $ fmap (showNodeAbsrt) (toList xs))
     <> "}"
  where
   showNodeAbsrt (x, (ObjLeaf _)) = unpack x
   showNodeAbsrt (x, obj        ) = unpack x <> " {" <> showObjTree obj <> "}"
 showObjTree (ObjNodeList xss) =
-  "List ["
+  "["
     <> mconcat (intersperse ", " $ fmap (showObjTree . ObjNode) xss)
     <> "]"
 

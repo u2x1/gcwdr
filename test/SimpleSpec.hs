@@ -57,6 +57,8 @@ spec = do
                      ]
 
     it "parses ifdef" $ do
+      parseTP "[- ifdef this.posts -][- x.title -][- end -]"
+        `shouldBe` rt [IfdefStmt (DotStmt ["this", "posts"]) [DotStmt ["x", "title"]] []]
       parseTP "[- ifdef this.posts -][- else -][- end -]"
         `shouldBe` rt [IfdefStmt (DotStmt ["this", "posts"]) [] []]
       parseTP
