@@ -4,6 +4,7 @@ module Data.Template where
 import           Data.Attoparsec.Text           ( many'
                                                 , parseOnly
                                                 )
+import           Data.Maybe                     ( catMaybes )
 import           Data.Either                    ( lefts
                                                 , rights
                                                 )
@@ -177,7 +178,9 @@ addGlb :: Map Text ObjectTree -> ObjectTree -> ObjectTree
 addGlb glbRes x = ObjNode (M.insert "this" x glbRes)
 
 toNodeList :: [ObjectTree] -> ObjectTree
-toNodeList = ObjNodeList . fmap (\(ObjNode x) -> x)
+toNodeList = ObjNodeList . catMaybes . fmap extract
+  where extract (ObjNode x) = Just x
+        extract _ = Nothing
 
 getDate :: ObjectTree -> Maybe UTCTime
 getDate obj =

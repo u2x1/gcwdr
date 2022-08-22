@@ -22,4 +22,5 @@ data MDElem = Header              Int Text Int -- The third Int is for href '#hd
             | FootnoteRef         Text [MDElem]
             | FootnoteRefs        [MDElem]
             | HorizontalRule
+            | RawHtmlTag          Text Text Text
   deriving (Show, Eq)

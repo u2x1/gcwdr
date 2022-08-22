@@ -16,6 +16,7 @@ import           Data.Attoparsec.Text           ( Parser
 import           Data.Text                     as T
                                                 ( pack
                                                 , singleton
+                                                , empty
                                                 )
 import           Data.Word8                     ( Word8 )
 
@@ -36,6 +37,7 @@ dotStmt :: Parser Stmt
 dotStmt = do
   obj <- takeTill (\w -> w == '.' || w == ' ')
   mem <- some (char '.' *> takeTill (\w -> w == '.' || w == ' '))
+  if mem == [T.empty] then fail "no member" else pure ()
   return (DotStmt (obj : mem))
 
 partialsStmt :: Parser Stmt

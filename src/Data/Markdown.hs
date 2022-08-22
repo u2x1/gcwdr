@@ -136,7 +136,7 @@ mdElem2Html (FootnoteRefs xs) =
     $ ("<hr/>" <>)
     $ tag'' "ol"
     $ mdElems2Html xs
-
+mdElem2Html (RawHtmlTag name props content) = tag (name <> " " <> props) content
 
 tag :: Text -> Text -> Text
 tag name x = mconcat ["<", name, ">", x, "</", name, ">"]

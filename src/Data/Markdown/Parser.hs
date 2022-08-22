@@ -52,6 +52,7 @@ import           Data.Markdown.Type             ( MDElem
                                                   , PlainText
                                                   , Strikethrough
                                                   , UnorderedList
+                                                  , RawHtmlTag
                                                   )
                                                 )
 import           Prelude                 hiding ( takeWhile )
@@ -65,7 +66,8 @@ import           Prelude                 hiding ( takeWhile )
 
 mdElem :: Parser MDElem
 mdElem = many' eol >>
-  footnoteRef
+  rawHtmlTag
+    <|> footnoteRef
     <|> blockquotes
     <|> orderedList
     <|> unorderedList
@@ -93,6 +95,14 @@ escapeChar = do
   _ <- char '\\'
   x <- T.singleton <$> satisfy (`elem` ("\\`*_{[(#+-.!|" :: String))
   return (PlainText x)
+
+rawHtmlTag :: Parser MDElem
+rawHtmlTag = do
+    tagName <- char '<' *> takeTill (\x -> x == ' ' || x == '>') <* many (char ' ')
+    props <- takeTill (== '>') <* char '>'
+    let end = string "</" <* string tagName <* char '>'
+    content <- T.pack <$> manyTill anyChar end <* many eol
+    return (RawHtmlTag tagName props content)
 
 para :: Parser MDElem
 para = Paragrah <$> do

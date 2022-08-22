@@ -5,16 +5,7 @@ import           Data.Attoparsec.Text           ( many'
                                                 , parseOnly
                                                 )
 import           Data.Markdown.Parser           ( mdElem )
-import           Data.Markdown.Type             ( MDElem
-                                                  ( Bold
-                                                  , BoldAndItalic
-                                                  , Italic
-                                                  , ListElem
-                                                  , Paragrah
-                                                  , PlainText
-                                                  , UnorderedList
-                                                  )
-                                                )
+import           Data.Markdown.Type
 import           Data.Template.Parser           ( stmt )
 import           Data.Template.Type             ( Stmt(..) )
 import           Data.Text                      ( Text )
@@ -34,6 +25,11 @@ spec = do
       parseMD "*test*" `shouldBe` rtPara [Italic "test"]
     it "parses boldAndItalic" $ do
       parseMD "***test***" `shouldBe` rtPara [BoldAndItalic "test"]
+    it "parses raw html tag" $ do
+      parseMD "<style>ababa</style>" `shouldBe` rt [RawHtmlTag "style" "" "ababa"]
+    it "parses raw html tag with props" $ do
+      parseMD "<style type=\"text/css\" scoped>ababa</style>"
+        `shouldBe` rt [RawHtmlTag "style" "type=\"text/css\" scoped" "ababa"]
     it "parses unordered list" $ do
       parseMD "- xyz\n- zyx"
         `shouldBe` rt
