@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
    <url>
-      <loc>https://www.example.com/</loc>
-      <lastmod>2020-07-31</lastmod>
+      <loc>http://localhost:4000/</loc>
+      <lastmod>2022-11-26</lastmod>
       <priority>0.8</priority>
    </url>
    <url>
-      <loc>https://www.example.com/post/encrypt-test/</loc>
+      <loc>http://localhost:4000/post/encrypt-test/</loc>
       <lastmod>2020-07-20</lastmod>
       <priority>0.6</priority>
    </url>
    <url>
-      <loc>https://www.example.com/post/test/</loc>
+      <loc>http://localhost:4000/post/test/</loc>
       <lastmod>2020-04-26</lastmod>
       <priority>0.6</priority>
    </url>

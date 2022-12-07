@@ -68,10 +68,13 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - gcwdr
+    when:
+    - condition: false
+      other-modules: Paths_gcwdr
 
 tests:
   gcwdr-test:
-    main:                Spec.hs
+    main:                Main.hs
     source-dirs:         test
     ghc-options:
     - -threaded
