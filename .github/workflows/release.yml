@@ -50,7 +50,7 @@ jobs:
       - name: Set binary path name
         run: |
           echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}${{ env.EXT }}" >> $GITHUB_ENV
-          mv ./dist/gcwdr-exe${{ env.EXT }} {{ env.BINARY_PATH }}
+          mv ./dist/gcwdr-exe${{ env.EXT }} ${{ env.BINARY_PATH }}
 
       - name: Compress binary
         uses: svenstaro/upx-action@2.0.1
