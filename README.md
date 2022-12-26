@@ -21,7 +21,7 @@ this {
     date: "xxxx-xx-xx",
     category: "yy",
     template: "xx.html",
-    relLink: "xx/xx.html",
+    relLink: "/xx/xx.html",
     content: "blah blah blah..."
     // and something else in the meta data of the post markdown file
 }
@@ -52,7 +52,7 @@ this: {
       date: "xxxx-xx-xx",
       category: "yy",
       template: "xx.html",
-      relLink: "xx/xx.html",
+      relLink: "/xx/xx.html",
       content: "blah blah blah..."
     },
     {
@@ -60,7 +60,7 @@ this: {
       date: "xxxx-xx-xx",
       category: "yyyy",
       template: "xx.html",
-      relLink: "xx/xx2.html",
+      relLink: "/xx/xx2.html",
       content: "blah blah blah..."
     }
   ],
@@ -73,7 +73,7 @@ this: {
           date: "xxxx-xx-xx",
           category: "yy",
           template: "xx.html",
-          relLink: "xx/xx.html",
+          relLink: "/xx/xx.html",
           content: "blah blah blah..."
         }
       ]
@@ -86,7 +86,7 @@ this: {
           date: "xxxx-xx-xx",
           category: "yy",
           template: "xx.html",
-          relLink: "xx/xx2.html",
+          relLink: "/xx/xx2.html",
           content: "blah blah blah..."
         }
       ]

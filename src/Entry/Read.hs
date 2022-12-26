@@ -95,19 +95,21 @@ gnrtPublic cfg = do
       themePath = themeDir cfg
   articleRes <- getAllFiles atclPath
   themeRes   <- getAllFiles themePath
-  let posts = filter
-        (\p -> (atclPath </> "post/") `isPrefixOf` p && ".md" `isSuffixOf` p)
-        articleRes
-      pages = filter
-        (\p -> (atclPath </> "page/") `isPrefixOf` p && ".md" `isSuffixOf` p)
-        articleRes
+  let getMdRes path = (flip filter) articleRes
+        (\p -> (atclPath </> path) `isPrefixOf` p && ".md" `isSuffixOf` p)
+
+  let posts = getMdRes "post/"
+      pages = getMdRes "page/"
+      diary = getMdRes "diary/"
       cStatics = filter (isPrefixOf (atclPath </> "static/")) articleRes
       statics  = filter (isPrefixOf (themePath </> "static/")) themeRes
 
   glbRes   <- getGlbRes themePath themeRes
 
-  postObjs <- sortOn (Down . getDate) . catMaybes <$> traverse parsePost posts
-  pageObjs <- catMaybes <$> traverse parsePost pages
+  let parseObj x = catMaybes <$> traverse parsePost x
+  postObjs <- sortOn (Down . getDate) <$> parseObj posts
+  pageObjs <- parseObj pages
+  diaryObjs <- parseObj diary
 
 
   --- Convert index.
@@ -115,9 +117,8 @@ gnrtPublic cfg = do
     cates =
       (\x -> mconcat
           [ M.singleton "cateName" (ObjLeaf x)
-          , M.singleton
-            "posts"
-            (toNodeList (filter ((== Just x) . getCategory) postObjs))
+          , M.singleton "posts"
+                (toNodeList (filter ((== Just x) . getCategory) postObjs))
           ]
         )
         <$> catMaybes (nub $ getCategory <$> postObjs)
@@ -126,9 +127,17 @@ gnrtPublic cfg = do
           [ M.singleton "posts" (toNodeList postObjs)
           , M.singleton "categories" (ObjNodeList cates)
           ]
-    let index = convertTP indexObjTree
+    let indexTP = convertTP indexObjTree
           <$> T.readFile (themePath </> "layout/index.html")
-    getFromTP "index" =<< index
+    getFromTP "index" =<< indexTP
+
+  diaryHtml <- do
+    let diaryObjTree = addGlb glbRes $ ObjNode $ mconcat
+          [ M.singleton "posts" (toNodeList diaryObjs)
+          ]
+    let diaryTP = convertTP diaryObjTree
+          <$> T.readFile (themePath </> "layout/diary-index.html")
+    getFromTP "diary-index" =<< diaryTP
 
   -- Remove out-dated public dir.
   _ <- removeDirContent (outputDir cfg)
@@ -138,11 +147,14 @@ gnrtPublic cfg = do
   copyFiles outputPath (themePath </> "static/") statics
   copyFiles outputPath (atclPath </> "static/")  cStatics
 
-  let articles = addGlb glbRes <$> runAtclModule (postObjs <> pageObjs)
+  let articles = addGlb glbRes <$> runAtclModule (postObjs <> pageObjs <> diaryObjs)
   -- Generate htmls.
-  T.writeFile (outputDir cfg </> "index.html") indexHtml  -- Index
-  gnrtHtmls outputPath themePath articles          -- Posts and pages
   gnrtSitemap outputPath (siteUrl cfg) articles
+  logWT Info $ show articles
+  gnrtHtmls outputPath themePath articles          -- Posts and pages
+  T.writeFile (outputDir cfg </> "index.html") indexHtml  -- Index
+  createDirectoryIfMissing True (outputDir cfg </> "diary/")
+  T.writeFile (outputDir cfg </> "diary/index.html") diaryHtml  -- Index
 
 
 getFromTP :: String -> Either [String] a -> IO a
@@ -161,13 +173,13 @@ fromMaybeM msg _ = logErrAndTerminate msg "encountered Nothing in fromMaybe"
 gnrtHtmls :: FilePath -> FilePath -> [ObjectTree] -> IO ()
 gnrtHtmls outputPath themePath = traverse_
   (\x -> do
-    title <- fromMaybeM "getting title from article"
+    title <- pure $ maybe "<untitled>" id
                         (T.unpack <$> (getNode "this" x >>= getLeaf' "title"))
     relLink <- fromMaybeM
       "getting relLink from article"
-      ((outputPath </>) . T.unpack <$> (getNode "this" x >>= getLeaf' "relLink")
+      ((outputPath </>) . T.unpack . T.tail <$> (getNode "this" x >>= getLeaf' "relLink")
       )
-    logWT Info $ "generating article \"" <> title <> "\""
+    logWT Info $ "generating article \"" <> title <> "\" at " <> relLink 
     html <- getFromTP "articles" . convertTP x =<< T.readFile
       (getLayoutFile themePath x)
     _ <- createDirectoryIfMissing True relLink

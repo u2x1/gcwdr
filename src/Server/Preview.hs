@@ -7,9 +7,12 @@ import System.Directory ( doesFileExist )
 import qualified Data.Text.Lazy as TL
 import System.FilePath ( (</>) )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
+import Utils.Logging
 
 previewServer :: FilePath -> Int -> IO ()
-previewServer root port = scotty port $ preview root
+previewServer root port = do
+  logWT Info ("preview at http://localhost:" <> show port)
+  scotty port (preview root)
 
 preview :: FilePath -> ScottyM ()
 preview root =

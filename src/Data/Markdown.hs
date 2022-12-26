@@ -53,7 +53,7 @@ parsePost path = do
               (/= '.')
               path
             )
-      pure $ Just (ObjNode (M.insert "relLink" (ObjLeaf (relPath <> "/")) x))
+      pure $ Just (ObjNode (M.insert "relLink" (ObjLeaf ("/" <> relPath <> "/")) x))
     _ -> pure Nothing
 
 post :: Parser Post
