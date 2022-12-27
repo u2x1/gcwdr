@@ -150,7 +150,6 @@ gnrtPublic cfg = do
   let articles = addGlb glbRes <$> runAtclModule (postObjs <> pageObjs <> diaryObjs)
   -- Generate htmls.
   gnrtSitemap outputPath (siteUrl cfg) articles
-  logWT Info $ show articles
   gnrtHtmls outputPath themePath articles          -- Posts and pages
   T.writeFile (outputDir cfg </> "index.html") indexHtml  -- Index
   createDirectoryIfMissing True (outputDir cfg </> "diary/")

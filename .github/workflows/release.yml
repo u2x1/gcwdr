@@ -43,14 +43,19 @@ jobs:
         run: |
           mkdir dist
           cabal install exe:gcwdr-exe --install-method=copy --overwrite-policy=always --installdir=dist
-      - if: matrix.os == 'windows-latest'
-        name: Set extension to .exe on Windows
-        run: echo "EXT=.exe" >> $GITHUB_ENV
 
-      - name: Set binary path name
+      - if: matrix.os == 'windows-latest'
+        name: Set Windows binary path name
         run: |
-          mv ./dist/gcwdr-exe${{ env.EXT }} ./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}${{ env.EXT }}
-          echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}${{ env.EXT }}" >> $GITHUB_ENV
+          chcp 65001
+          mv ./dist/gcwdr-exe.exe ./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}.exe
+          echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}.exe" >> $env:GITHUB_ENV
+
+      - if: matrix.os != 'windows-latest'
+        name: Set Unix binary path name
+        run: |
+          mv ./dist/gcwdr-exe ./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}
+          echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}" >> $GITHUB_ENV
 
       - name: Compress binary
         uses: svenstaro/upx-action@2.0.1
