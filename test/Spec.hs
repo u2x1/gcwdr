@@ -42,6 +42,9 @@ spec = do
                          , ListElem [PlainText "zyx"]
                          ]
                      ]
+    it "parses expandBlock" $ do
+      parseMD "$$$detail\nhahaha\n$$$"
+        `shouldBe` rt [ExpandBlock "detail" [Paragrah [PlainText "hahaha"]]]
 
   describe "Template parsing stuff" $ do
     it "parses dot" $ do

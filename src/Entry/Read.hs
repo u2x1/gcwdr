@@ -101,6 +101,7 @@ gnrtPublic cfg = do
   let posts = getMdRes "post/"
       pages = getMdRes "page/"
       diary = getMdRes "diary/"
+      writeup = getMdRes "writeup/"
       cStatics = filter (isPrefixOf (atclPath </> "static/")) articleRes
       statics  = filter (isPrefixOf (themePath </> "static/")) themeRes
 
@@ -108,8 +109,9 @@ gnrtPublic cfg = do
 
   let parseObj x = catMaybes <$> traverse parsePost x
   postObjs <- sortOn (Down . getDate) <$> parseObj posts
+  diaryObjs<- sortOn (Down . getDate) <$> parseObj diary
+  writeupObjs <- sortOn (Down . getDate) <$> parseObj writeup
   pageObjs <- parseObj pages
-  diaryObjs <- parseObj diary
 
 
   --- Convert index.
@@ -122,6 +124,16 @@ gnrtPublic cfg = do
           ]
         )
         <$> catMaybes (nub $ getCategory <$> postObjs)
+
+    writeupcates =
+      (\x -> mconcat
+          [ M.singleton "cateName" (ObjLeaf x)
+          , M.singleton "posts"
+                (toNodeList (filter ((== Just x) . getCategory) writeupObjs))
+          ]
+        )
+        <$> catMaybes (nub $ getCategory <$> writeupObjs)
+
   indexHtml <- do
     let indexObjTree = addGlb glbRes $ ObjNode $ mconcat
           [ M.singleton "posts" (toNodeList postObjs)
@@ -139,6 +151,15 @@ gnrtPublic cfg = do
           <$> T.readFile (themePath </> "layout/diary-index.html")
     getFromTP "diary-index" =<< diaryTP
 
+  writeupHtml <- do
+    let writeupObjTree = addGlb glbRes $ ObjNode $ mconcat
+          [ M.singleton "posts" (toNodeList writeupObjs)
+          , M.singleton "categories" (ObjNodeList writeupcates)
+          ]
+    let writeupTP = convertTP writeupObjTree
+          <$> T.readFile (themePath </> "layout/writeup-index.html")
+    getFromTP "writeup-index" =<< writeupTP
+
   -- Remove out-dated public dir.
   _ <- removeDirContent (outputDir cfg)
 
@@ -147,13 +168,18 @@ gnrtPublic cfg = do
   copyFiles outputPath (themePath </> "static/") statics
   copyFiles outputPath (atclPath </> "static/")  cStatics
 
-  let articles = addGlb glbRes <$> runAtclModule (postObjs <> pageObjs <> diaryObjs)
+  let articles = addGlb glbRes <$> runAtclModule (postObjs <> pageObjs <> diaryObjs <> writeupObjs)
   -- Generate htmls.
-  gnrtSitemap outputPath (siteUrl cfg) articles
+  
+  gnrtSitemap outputPath (siteUrl cfg) $
+      addGlb glbRes <$> runAtclModule (postObjs <> writeupObjs)
+  
   gnrtHtmls outputPath themePath articles          -- Posts and pages
   T.writeFile (outputDir cfg </> "index.html") indexHtml  -- Index
   createDirectoryIfMissing True (outputDir cfg </> "diary/")
   T.writeFile (outputDir cfg </> "diary/index.html") diaryHtml  -- Index
+  createDirectoryIfMissing True (outputDir cfg </> "writeup/")
+  T.writeFile (outputDir cfg </> "writeup/index.html") writeupHtml  -- Index
 
 
 getFromTP :: String -> Either [String] a -> IO a
@@ -178,7 +204,7 @@ gnrtHtmls outputPath themePath = traverse_
       "getting relLink from article"
       ((outputPath </>) . T.unpack . T.tail <$> (getNode "this" x >>= getLeaf' "relLink")
       )
-    logWT Info $ "generating article \"" <> title <> "\" at " <> relLink 
+    logWT Info $ "generating article \"" <> title <> "\" at " <> relLink
     html <- getFromTP "articles" . convertTP x =<< T.readFile
       (getLayoutFile themePath x)
     _ <- createDirectoryIfMissing True relLink

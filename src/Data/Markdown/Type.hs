@@ -12,6 +12,7 @@ data MDElem = Header              Int Text Int -- The third Int is for href '#hd
             | Strikethrough       Text
             | Code                Text
             | CodeBlock           Text
+            | ExpandBlock         Text [MDElem]
             | Link                [MDElem] Text (Maybe Text)
             | Image               Text Text (Maybe Text)
             | OrderedList         [MDElem]    -- Should contain ListElem

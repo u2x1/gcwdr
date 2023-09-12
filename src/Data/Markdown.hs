@@ -110,6 +110,9 @@ mdElem2Html (Header hz x hid) = propTag ("h" <> T.pack (show hz))
   where headerIdText = Just . T.pack $ "hdr:" <> show hid
 mdElem2Html (Paragrah      xs) = tag' "p" $ mdElems2Html xs
 mdElem2Html (Blockquotes   xs) = tag'' "blockquote" $ mdElems2Html xs
+mdElem2Html (ExpandBlock   title xs) =
+   tag'' "details" $
+    ((tag' "summary" title) <> (mdElems2Html xs))
 mdElem2Html (OrderedList   xs) = tag'' "ol" $ mdElems2Html xs
 mdElem2Html (UnorderedList xs) = tag'' "ul" $ mdElems2Html xs
 mdElem2Html (ListElem      xs) = tag "li" $ mdElems2Html xs

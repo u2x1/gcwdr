@@ -39,6 +39,7 @@ import           Data.Markdown.Type             ( MDElem
                                                   , BoldAndItalic
                                                   , Code
                                                   , CodeBlock
+                                                  , ExpandBlock
                                                   , Footnote
                                                   , FootnoteRef
                                                   , Header
@@ -71,6 +72,7 @@ mdElem = many' eol >>
     <|> blockquotes
     <|> orderedList
     <|> unorderedList
+    <|> expandBlock
     <|> codeBlock
     <|> header
     <|> hrztRule
@@ -207,6 +209,14 @@ blockquotes = do
     Right mdElems -> return (Blockquotes mdElems)
     Left  _       -> return (Blockquotes [PlainText text])
   where prefix = char '>'
+
+expandBlock :: Parser MDElem
+expandBlock = do
+  title <- string "$$$" *> (T.pack <$> manyTill anyChar eol)
+  _ <- many eol
+  content <- manyTill (codeBlock <|> para) (string "$$$" <* many eol)
+
+  return $ ExpandBlock title content
 
 orderedList :: Parser MDElem
 orderedList = OrderedList . mconcat <$> some

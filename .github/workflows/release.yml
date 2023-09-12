@@ -13,6 +13,7 @@ jobs:
     name: ${{ matrix.os }}/GHC ${{ matrix.ghc }}/${{ github.ref }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
         ghc:
@@ -33,6 +34,7 @@ jobs:
       - name: Freeze
         run: |
           cabal freeze
+
       - name: Cache ~/.cabal/store
         uses: actions/cache@v3.0.11
         with:
