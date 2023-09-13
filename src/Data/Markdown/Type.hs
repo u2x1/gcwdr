@@ -8,6 +8,8 @@ data MDElem = Header              Int Text Int -- The third Int is for href '#hd
             | PlainText           Text
             | Italic              Text
             | Bold                Text
+            | LatexInline         Text
+            | LatexBlock          Text
             | BoldAndItalic       Text
             | Strikethrough       Text
             | Code                Text

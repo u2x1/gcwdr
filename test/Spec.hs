@@ -45,6 +45,16 @@ spec = do
     it "parses expandBlock" $ do
       parseMD "$$$detail\nhahaha\n$$$"
         `shouldBe` rt [ExpandBlock "detail" [Paragrah [PlainText "hahaha"]]]
+    it "parses latex inline" $ do
+      parseMD "$formula$"
+        `shouldBe` rt [Paragrah [LatexInline "formula"]]
+      parseMD "$$"
+        `shouldBe` rt [Paragrah [PlainText "$$"]]
+    it "parses latex block" $ do
+      parseMD "$$formula$$"
+        `shouldBe` rt [Paragrah [LatexBlock "formula"]]
+      parseMD "$$$$"
+        `shouldBe` rt [Paragrah [PlainText "$$$$"]]
 
   describe "Template parsing stuff" $ do
     it "parses dot" $ do

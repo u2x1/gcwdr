@@ -36,6 +36,8 @@ import           Data.Text                     as T
 import           Data.Markdown.Type             ( MDElem
                                                   ( Blockquotes
                                                   , Bold
+                                                  , LatexInline
+                                                  , LatexBlock
                                                   , BoldAndItalic
                                                   , Code
                                                   , CodeBlock
@@ -81,6 +83,8 @@ mdElem = many' eol >>
 paraElem :: Parser MDElem
 paraElem =
   escapeChar
+    <|> latexInline
+    <|> latexBlock
     <|> italic
     <|> bold
     <|> boldAndItalic
@@ -137,6 +141,18 @@ bold = do
   text <- emphasis
   _    <- string $ pack . reverse $ m
   return (Bold text)
+
+latexInline :: Parser MDElem
+latexInline = do
+  _    <- (char '$') <* lookAhead (satisfy (/= '$'))
+  content <- T.pack <$> manyTill anyChar (char '$')
+  return (LatexInline content)
+
+latexBlock :: Parser MDElem
+latexBlock = do
+  _    <- (string "$$") <* lookAhead (satisfy (/= '$'))
+  content <- T.pack <$> manyTill anyChar (string "$$")
+  return (LatexBlock content)
 
 boldAndItalic :: Parser MDElem
 boldAndItalic = do
