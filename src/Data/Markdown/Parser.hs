@@ -74,6 +74,7 @@ mdElem = many' eol >>
     <|> blockquotes
     <|> orderedList
     <|> unorderedList
+    <|> latexBlock
     <|> expandBlock
     <|> codeBlock
     <|> header
@@ -122,7 +123,7 @@ para = Paragrah <$> do
 plainText :: Parser MDElem
 plainText = PlainText <$> do
   w    <- anyChar
-  text <- takeTill (inClass "![_*`\\\n")
+  text <- takeTill (inClass "$![_*`\\\n")
   return (T.singleton w <> text)
 
 emphasis :: Parser Text

@@ -48,11 +48,15 @@ spec = do
     it "parses latex inline" $ do
       parseMD "$formula$"
         `shouldBe` rt [Paragrah [LatexInline "formula"]]
+      parseMD "$S_a$ and $S_b$"
+        `shouldBe` rt [Paragrah [PlainText "$$"]]
       parseMD "$$"
         `shouldBe` rt [Paragrah [PlainText "$$"]]
     it "parses latex block" $ do
+      parseMD "haha$$formula$$haha"
+        `shouldBe` rt [Paragrah [PlainText "haha",LatexBlock "formula",PlainText "haha"]]
       parseMD "$$formula$$"
-        `shouldBe` rt [Paragrah [LatexBlock "formula"]]
+        `shouldBe` rt [LatexBlock "formula"]
       parseMD "$$$$"
         `shouldBe` rt [Paragrah [PlainText "$$$$"]]
 
