@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric #-}
 module Server.Admin where
 
 import Web.Scotty
@@ -9,27 +9,20 @@ import qualified Data.ByteString.Lazy.Char8 as LB
 import qualified Data.Text.Encoding as T
 import Data.ByteString.Lazy.Char8 ( fromStrict )
 import Data.Text (Text)
-import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Data.Aeson ( FromJSON, ToJSON )
-import System.Directory ( createDirectory, doesDirectoryExist )
+import System.Directory ( createDirectory, doesDirectoryExist, doesFileExist, listDirectory )
 import Network.HTTP.Types ()
 import qualified Data.Text.IO as T
 import GHC.Generics ( Generic )
-import Data.List ( dropWhileEnd )
-import System.FilePath.Find
-    ( (&&?),
-      (==?),
-      always,
-      extension,
-      fileType,
-      find,
-      FileType(RegularFile) )
+import Data.List ( dropWhileEnd, isSuffixOf )
+import System.FilePath ( (</>) )
+import Control.Monad ( filterM )
 import Server.Preview ( preview )
 
 adminServer :: Int -> FilePath -> FilePath -> IO ()
 adminServer port root adminRoot = scotty port $ do
     post "/api/mdPreview/"      (cors >> previewMarkdown)
-    get  "/api/getArticleList/" (cors >> (getArticleList root))
+    get  "/api/getArticleList/" (cors >> getArticleList root)
     post "/api/getArticleData/" (cors >> getArticleData)
     post "/api/updateArticle/"  (cors >> updateArticle)
     preview adminRoot
@@ -52,13 +45,23 @@ updateArticle = do
 
 getArticleList :: FilePath -> ActionM ()
 getArticleList root = do
-    paths <- liftIO $
-      find always (fileType ==? RegularFile &&? extension ==? ".md") root
+    paths <- liftIO $ findMdFiles root
     json paths
+
+-- | Recursively find all .md files under a directory (replaces filemanip dependency)
+findMdFiles :: FilePath -> IO [FilePath]
+findMdFiles dir = do
+    entries <- listDirectory dir
+    let paths = map (dir </>) entries
+    mdFiles <- filterM doesFileExist paths
+    dirs  <- filterM doesDirectoryExist paths
+    let matchedFiles = filter (".md" `isSuffixOf`) mdFiles
+    subFiles <- concat <$> mapM findMdFiles dirs
+    pure (matchedFiles ++ subFiles)
 
 getArticleData :: ActionM ()
 getArticleData = do
-    content <- (liftIO . LB.readFile .LB.unpack) =<< body
+    content <- (liftIO . LB.readFile . LB.unpack) =<< body
     raw content
 
 data ArticleData = ArticleData {

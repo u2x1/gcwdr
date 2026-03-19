@@ -1,7 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Data.Config                    ( configCodec )
+import           Data.Config                    ( decodeConfigFile )
 import           Data.Config.Type               ( Config
                                                   ( articleDir
                                                   , localServerPort
@@ -25,7 +24,6 @@ import           Control.Monad                  ( forever )
 import           System.FSNotify                ( watchTree
                                                 , withManager
                                                 )
-import qualified Toml
 import           Utils.Logging                  ( LogTag(Info)
                                                 , logErrAndTerminate
                                                 , logWT
@@ -33,9 +31,9 @@ import           Utils.Logging                  ( LogTag(Info)
 
 parseConfig :: FilePath -> IO Config
 parseConfig path = do
-  tomlRes <- Toml.decodeFileEither configCodec path
+  tomlRes <- decodeConfigFile path
   case tomlRes of
-    Left  errs   -> logErrAndTerminate "Parsing config" (show errs)
+    Left  errs   -> logErrAndTerminate "Parsing config" errs
     Right config -> pure config
 
 test :: IO ()
@@ -90,25 +88,29 @@ data Flag = PreGenerate | Watch
 
 parseArgs :: [String] -> Either String Command
 parseArgs args =
-  Command <$> parseMode (filter ((/= '-') . head) args) <*> Right
-    (parseFlag $ filter ((== '-') . head) args)
+  Command <$> parseMode (filter (not . isFlag) args) <*> Right
+    (parseFlag $ filter isFlag args)
  where
+  isFlag ('-':_) = True
+  isFlag _       = False
+
   parseMode []       = Left "Empty command."
   parseMode (x : xs) = case x of
     "generate" -> Right Generate
     "server"   -> Right Server
     "deploy"   -> Right Deploy
     "help"     -> Right Help
-    "commit"   -> if null xs
-      then Left "Commit message can not be empty."
-      else Right $ Commit (head xs)
+    "commit"   -> case xs of
+      []      -> Left "Commit message can not be empty."
+      (m : _) -> Right $ Commit m
     _ -> Left "Unknown command."
 
   parseFlag = mapMaybe getFlag
-  getFlag x = case tail x of
+  getFlag ('-':rest) = case rest of
     "w" -> Just Watch
     "g" -> Just PreGenerate
     _   -> Nothing
+  getFlag _ = Nothing
 
 watchChanges :: Config -> IO a
 watchChanges cfg =

@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Utils.SitemapGenerator where
 
 import           Data.Maybe                     ( catMaybes )

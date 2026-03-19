@@ -1,12 +1,12 @@
-{-# LANGUAGE  OverloadedStrings #-}
 module Server.Preview where
 
 import Web.Scotty
-    ( file, get, param, regex, scotty, setHeader, text, ScottyM )
+    ( file, get, captureParam, regex, scotty, setHeader, text, ScottyM )
 import System.Directory ( doesFileExist )
 import qualified Data.Text.Lazy as TL
 import System.FilePath ( (</>) )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
+import qualified Data.Text as T
 import Utils.Logging
 
 previewServer :: FilePath -> Int -> IO ()
@@ -16,8 +16,8 @@ previewServer root port = do
 
 preview :: FilePath -> ScottyM ()
 preview root =
-    get (regex ".*") $ do
-      path <- (root <>) <$> param "0"
+    get (regex "(.*)") $ do
+      path <- (root <>) . T.unpack <$> captureParam "1"
       filename' <- liftIO $ checkFileExist path
       case filename' of
           Nothing -> text "404"

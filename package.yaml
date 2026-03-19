@@ -1,48 +1,40 @@
 name:                gcwdr
 version:             0.1.0.0
-github:              "Nutr1t07/gcwdr"
+github:              "u2x1/gcwdr"
 license:             BSD3
-author:              "Nutr1t07"
-maintainer:          "nutr1t07@outlook.com"
-copyright:           "2020 Nutr1t07"
+author:              "u2x1"
+maintainer:          "u2x1@outlook.com"
+copyright:           "2020-2026 u2x1"
 
 extra-source-files:
 - README.md
 
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+description:         Please see the README on GitHub at <https://github.com/u2x1/gcwdr#readme>
 
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/nutr1t07/gcwdr#readme>
+language: GHC2021
+
+default-extensions:
+- OverloadedStrings
 
 dependencies:
-- base >= 4.7 && < 5
+- base >= 4.18 && < 5
 - attoparsec
 - bytestring
 - text
 - containers
 - time
-- word8
 - directory
-- utf8-string
 - extra
 - network
 - html-entities
-- QuickCheck
-- hspec
-- hspec-discover
 - stringsearch
 - process
-- tomland
+- toml-parser
 - filepath
 - fsnotify
 - scotty
 - aeson
 - http-types
-- filemanip
 
 ghc-options:
 - -Wall
@@ -82,3 +74,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - gcwdr
+    - hspec
+    - hspec-discover
+    - QuickCheck

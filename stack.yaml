@@ -1,11 +1,4 @@
-resolver: lts-19.32
+resolver: lts-24.34
 
 packages:
 - .
-
-extra-deps:
-  - tomland-1.3.3.1@sha256:83a8fd26a97164100541f7b26aa40ffdc6f230b21e94cbb3eae1fb7093c4356e,8924
-  - validation-selective-0.1.0.2@sha256:c878846bfffeba69efa3b4866025f249656e0e0a129fed6d446eb602382d328b,3856
-nix:
-  enable: true
-  packages: [zlib]

@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Data.Template where
 
 import           Data.Attoparsec.Text           ( many'

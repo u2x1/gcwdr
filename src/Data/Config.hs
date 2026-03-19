@@ -1,33 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Data.Config where
 
-import           Toml                           ( (.=)
-                                                , TomlCodec
-                                                )
-import qualified Toml
-
-import           Data.Config.Type               ( Config(..)
-                                                , Menu(..)
+import qualified Data.Text.IO                  as TIO
+import           Toml                           ( decode
+                                                , Result(..)
                                                 )
 
-configCodec :: TomlCodec Config
-configCodec =
-  Config
-    <$> Toml.text "title"
-    .=  siteTitle
-    <*> Toml.text "url"
-    .=  siteUrl
-    <*> Toml.list menuC "menu"
-    .=  siteMenus
-    <*> Toml.string "outputDir"
-    .=  outputDir
-    <*> Toml.string "themeDir"
-    .=  themeDir
-    <*> Toml.string "articleDir"
-    .=  articleDir
-    <*> Toml.int "localServerPort"
-    .=  localServerPort
+import           Data.Config.Type               ( Config(..) )
 
-
-menuC :: TomlCodec Menu
-menuC = Menu <$> Toml.text "name" .= menuName <*> Toml.text "loc" .= menuLoc
+decodeConfigFile :: FilePath -> IO (Either String Config)
+decodeConfigFile path = do
+  content <- TIO.readFile path
+  case decode content of
+    Failure errs -> pure $ Left (unlines errs)
+    Success _warnings val -> pure $ Right val

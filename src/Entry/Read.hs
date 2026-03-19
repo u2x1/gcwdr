@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Entry.Read where
 
 import           Control.Exception              ( catchJust )
@@ -37,9 +36,7 @@ import           System.Directory               ( copyFile
                                                 )
 import           System.IO.Error                ( isDoesNotExistError )
 
-import qualified Toml
-
-import           Data.Config                    ( configCodec )
+import           Data.Config                    ( decodeConfigFile )
 import           Data.Config.Type               ( Config
                                                   ( articleDir
                                                   , outputDir
@@ -83,9 +80,9 @@ getGlbRes themePath allFiles = do
 
 parseConfig :: FilePath -> IO Config
 parseConfig path = do
-  tomlRes <- Toml.decodeFileEither configCodec path
+  tomlRes <- decodeConfigFile path
   case tomlRes of
-    Left  errs   -> logErrAndTerminate "Parsing config" (show errs)
+    Left  errs   -> logErrAndTerminate "Parsing config" errs
     Right config -> pure config
 
 gnrtPublic :: Config -> IO ()

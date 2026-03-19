@@ -1,12 +1,17 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Data.Config.Type where
 
 import           Data.Map.Lazy                  ( fromList )
+import           Data.Text                      ( Text )
+import qualified Data.Text                     as T
+import           Toml.Schema                    ( FromValue(..)
+                                                , parseTableFromValue
+                                                , reqKey
+                                                )
+
 import           Data.Template                  ( toNodeList )
 import           Data.Template.Type             ( ObjectTree(ObjLeaf, ObjNode)
                                                 , ToObjectTree(..)
                                                 )
-import           Data.Text                      ( Text )
 
 data Config = Config
   { siteTitle       :: Text
@@ -24,6 +29,23 @@ data Menu = Menu
   , menuLoc  :: Text
   }
   deriving Show
+
+instance FromValue Config where
+  fromValue = parseTableFromValue $
+    Config
+      <$> reqKey "title"
+      <*> reqKey "url"
+      <*> reqKey "menu"
+      <*> (T.unpack <$> reqKey "outputDir")
+      <*> (T.unpack <$> reqKey "themeDir")
+      <*> (T.unpack <$> reqKey "articleDir")
+      <*> reqKey "localServerPort"
+
+instance FromValue Menu where
+  fromValue = parseTableFromValue $
+    Menu
+      <$> reqKey "name"
+      <*> reqKey "loc"
 
 instance ToObjectTree Menu where
   toObjectTree menu = ObjNode (fromList tup)

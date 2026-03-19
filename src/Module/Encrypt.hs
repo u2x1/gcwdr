@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Module.Encrypt where
 
 import           Data.Char                      ( chr

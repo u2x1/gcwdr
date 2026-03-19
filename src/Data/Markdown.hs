@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Data.Markdown where
 
 import           Control.Applicative            ( many, some )
@@ -215,9 +214,11 @@ getOutline elems = go [] headers
   go :: [Int] -> [MDElem] -> Text
   go depths ((Header hdSz hdTx hid) : xs) =
     let closure  = length $ takeWhile (> hdSz) depths
-        newDepth = if null depths || hdSz > head depths
-          then hdSz : depths
-          else drop closure depths
+        newDepth = case depths of
+          []    -> hdSz : depths
+          (d:_) -> if hdSz > d
+            then hdSz : depths
+            else drop closure depths
         prefix | closure > 0        = mconcat (replicate closure "</ul>\n")
                | newDepth == depths = ""
                | otherwise          = "<ul>\n\t"

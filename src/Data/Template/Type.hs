@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Data.Template.Type where
 
 import           Data.List                      ( intersperse )

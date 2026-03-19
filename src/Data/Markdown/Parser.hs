@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Data.Markdown.Parser where
 
 import           Control.Applicative            ( Alternative((<|>), many, some)

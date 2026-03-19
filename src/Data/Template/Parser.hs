@@ -1,8 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Data.Template.Parser where
 
 import           Control.Applicative            ( Alternative((<|>), many, some)
-                                                , liftA2
                                                 )
 import           Data.Attoparsec.Text           ( Parser
                                                 , anyChar
@@ -19,7 +17,6 @@ import           Data.Text                     as T
                                                 , singleton
                                                 , empty
                                                 )
-import           Data.Word8                     ( Word8 )
 
 import           Data.Template.Type             ( Stmt(..) )
 
@@ -80,10 +77,3 @@ raw = do
   w <- anyChar -- always ignore first character
   Raw . (T.singleton w <>) <$> takeTill (== '[') -- take till meeting '['
 
--- * or _
-isAstrOrUds :: Word8 -> Bool
-isAstrOrUds w = w == 95 || w == 42
-
--- * or -
-isAstrOrDash :: Word8 -> Bool
-isAstrOrDash w = w == 42 || w == 43 || w == 45
