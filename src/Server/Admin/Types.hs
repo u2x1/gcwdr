@@ -3,6 +3,7 @@ module Server.Admin.Types where
 
 import Data.Aeson            ( FromJSON, ToJSON, (.=), (.:), (.:?)
                              , object, withObject, parseJSON, toJSON )
+import Data.Int              ( Int64 )
 import Data.IORef            ( IORef )
 import Data.Map.Lazy         ( Map )
 import Data.Text             ( Text )
@@ -104,3 +105,33 @@ data AdminEnv = AdminEnv
   , envBuildState   :: BuildState
   , envGlobalRes    :: IORef (Map Text ObjectTree)
   }
+
+-- | Category with article count
+data CategoryInfo = CategoryInfo
+  { ciName  :: Text
+  , ciCount :: Int
+  } deriving (Show)
+
+instance ToJSON CategoryInfo where
+  toJSON c = object
+    [ "name"  .= ciName c
+    , "count" .= ciCount c
+    ]
+
+-- | Media file metadata
+data MediaFile = MediaFile
+  { mfName     :: Text
+  , mfPath     :: Text
+  , mfSize     :: Int64
+  , mfMimeType :: Text
+  , mfIsImage  :: Bool
+  } deriving (Show)
+
+instance ToJSON MediaFile where
+  toJSON m = object
+    [ "name"      .= mfName m
+    , "path"      .= mfPath m
+    , "size"      .= mfSize m
+    , "mime_type" .= mfMimeType m
+    , "is_image"  .= mfIsImage m
+    ]

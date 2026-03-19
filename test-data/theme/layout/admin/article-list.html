@@ -1,60 +1,300 @@
+<style>
+  .tree-view {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 16px 20px;
+    white-space: pre;
+    overflow-x: auto;
+    color: #555;
+  }
+  .tree-view .tree-dir {
+    color: #2563eb;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .tree-view .tree-dir:hover { text-decoration: underline; }
+  .tree-view .tree-file { color: #333; }
+  .tree-view .tree-meta {
+    color: #999;
+    font-size: 12px;
+  }
+  .tree-view .tree-actions {
+    display: inline;
+  }
+  .tree-view .tree-actions a,
+  .tree-view .tree-actions button {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    padding: 1px 6px;
+    margin-left: 4px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    background: #fafafa;
+    color: #555;
+    cursor: pointer;
+    text-decoration: none;
+    vertical-align: baseline;
+  }
+  .tree-view .tree-actions a:hover,
+  .tree-view .tree-actions button:hover { background: #eee; border-color: #999; }
+  .tree-view .tree-actions button.del { color: #c0392b; border-color: #e0a8a1; }
+  .tree-view .tree-actions button.del:hover { background: #fdf0ef; }
+  .sort-controls {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .sort-controls label { font-size: 12px; color: #888; margin-right: 2px; }
+  .sort-controls select { width: auto; min-width: 100px; font-size: 12px; padding: 3px 6px; font-family: 'Consolas', monospace; }
+</style>
 <div class="admin-content">
   <div class="toolbar">
     <h1 style="border: none; margin: 0; padding: 0;">Articles</h1>
     <div class="spacer"></div>
+    <div class="sort-controls">
+      <label>cat:</label>
+      <select id="categoryFilter">
+        <option value="">*</option>
+      </select>
+      <label>sort:</label>
+      <select id="sortBy">
+        <option value="path">path</option>
+        <option value="date-desc">date (new)</option>
+        <option value="date-asc">date (old)</option>
+        <option value="title">title</option>
+        <option value="category">category</option>
+      </select>
+    </div>
     <a href="/admin/articles/new" class="btn btn-primary">New Article</a>
   </div>
-  <div class="card" style="padding: 0; overflow: hidden;">
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Date</th>
-          <th>Category</th>
-          <th>Path</th>
-          <th style="width: 140px;">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="articleList">
-        <tr><td colspan="5" style="text-align: center; color: #888; padding: 24px;">Loading...</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <div id="treeSummary" style="font-family:Consolas,monospace;font-size:12px;color:#888;margin-bottom:8px;"></div>
+  <div id="treeView" class="tree-view">Loading...</div>
 </div>
 <script>
 (function() {
+  var allArticles = [];
+  var categoryFilter = document.getElementById('categoryFilter');
+  var sortBy = document.getElementById('sortBy');
+
+  var urlParams = new URLSearchParams(window.location.search);
+  var initialCategory = urlParams.get('category') || '';
+
+  fetch('/admin/api/categories', {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(categories) {
+      categories.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name + ' (' + c.count + ')';
+        categoryFilter.appendChild(opt);
+      });
+      if (initialCategory) categoryFilter.value = initialCategory;
+    });
+
   fetch('/admin/api/articles', {credentials: 'same-origin'})
     .then(function(r) { return r.json(); })
     .then(function(articles) {
-      var tbody = document.getElementById('articleList');
-      if (articles.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#888;padding:24px;">No articles found.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = '';
-      articles.forEach(function(a) {
-        var tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td style="font-weight:600;">' + esc(a.title || '(untitled)') + '</td>' +
-          '<td style="color:#888;font-size:13px;">' + esc(a.date || '-') + '</td>' +
-          '<td style="color:#888;font-size:13px;">' + esc(a.category || '-') + '</td>' +
-          '<td style="font-size:12px;color:#aaa;font-family:Consolas,monospace;">' + esc(a.path) + '</td>' +
-          '<td>' +
-            '<a href="/admin/articles/edit?path=' + encodeURIComponent(a.path) + '" class="btn" style="padding:3px 10px;font-size:12px;">Edit</a> ' +
-            '<button onclick="deleteArticle(\'' + esc(a.path).replace(/'/g, "\\'") + '\')" class="btn btn-danger" style="padding:3px 10px;font-size:12px;">Delete</button>' +
-          '</td>';
-        tbody.appendChild(tr);
-      });
+      allArticles = articles;
+      render();
     });
 
-  function esc(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
+  categoryFilter.addEventListener('change', render);
+  sortBy.addEventListener('change', render);
+
+  function render() {
+    var filter = categoryFilter.value;
+    var list = filter
+      ? allArticles.filter(function(a) { return a.category === filter; })
+      : allArticles.slice();
+
+    var sort = sortBy.value;
+    list.sort(function(a, b) {
+      switch (sort) {
+        case 'date-desc': return (b.date || '').localeCompare(a.date || '');
+        case 'date-asc':  return (a.date || '').localeCompare(b.date || '');
+        case 'title':     return (a.title || '').localeCompare(b.title || '');
+        case 'category':  return (a.category || '').localeCompare(b.category || '');
+        default:          return a.path.localeCompare(b.path);
+      }
+    });
+
+    if (sort === 'path') {
+      renderTree(list);
+    } else {
+      renderFlat(list, sort);
+    }
+  }
+
+  // Build tree structure from paths and render with box-drawing chars
+  function renderTree(articles) {
+    var root = {};
+    articles.forEach(function(a) {
+      var parts = a.path.split('/');
+      var node = root;
+      for (var i = 0; i < parts.length - 1; i++) {
+        if (!node[parts[i]]) node[parts[i]] = {};
+        node = node[parts[i]];
+      }
+      node[parts[parts.length - 1]] = a;
+    });
+
+    var lines = [];
+    renderNode(root, '', '', lines);
+
+    var container = document.getElementById('treeView');
+    container.innerHTML = '';
+    container.appendChild(buildFragment(lines));
+
+    var dirs = countDirs(root);
+    document.getElementById('treeSummary').textContent =
+      dirs + ' directories, ' + articles.length + ' files';
+  }
+
+  function countDirs(node) {
+    var count = 0;
+    var keys = Object.keys(node);
+    keys.forEach(function(k) {
+      if (typeof node[k] === 'object' && !node[k].path) {
+        count += 1 + countDirs(node[k]);
+      }
+    });
+    return count;
+  }
+
+  function renderNode(node, prefix, childPrefix, lines) {
+    var keys = Object.keys(node).sort(function(a, b) {
+      var aIsDir = typeof node[a] === 'object' && !node[a].path;
+      var bIsDir = typeof node[b] === 'object' && !node[b].path;
+      // directories first, then files sorted by date descending
+      if (aIsDir && !bIsDir) return -1;
+      if (!aIsDir && bIsDir) return 1;
+      if (aIsDir && bIsDir) return a.localeCompare(b);
+      // both files: sort by date descending
+      var da = (node[a].date || '');
+      var db = (node[b].date || '');
+      return db.localeCompare(da);
+    });
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var isLast = (i === keys.length - 1);
+      var connector = isLast ? '\u2514\u2500\u2500 ' : '\u251c\u2500\u2500 ';
+      var child = node[k];
+
+      if (typeof child === 'object' && !child.path) {
+        // directory
+        lines.push({
+          type: 'dir',
+          prefix: prefix + connector,
+          name: k + '/'
+        });
+        var nextPrefix = childPrefix + (isLast ? '    ' : '\u2502   ');
+        renderNode(child, nextPrefix, nextPrefix, lines);
+      } else {
+        // file (article)
+        var meta = '';
+        if (child.title) meta += child.title;
+        if (child.date)  meta += '  ' + child.date;
+        if (child.category) meta += '  [' + child.category + ']';
+        lines.push({
+          type: 'file',
+          prefix: prefix + connector,
+          name: k,
+          meta: meta,
+          article: child
+        });
+      }
+    }
+  }
+
+  // Render flat list (non-path sort) as single-depth tree grouped display
+  function renderFlat(articles, sort) {
+    var lines = [];
+    // Show as flat list with tree connectors
+    for (var i = 0; i < articles.length; i++) {
+      var a = articles[i];
+      var isLast = (i === articles.length - 1);
+      var connector = isLast ? '\u2514\u2500\u2500 ' : '\u251c\u2500\u2500 ';
+      var meta = '';
+      if (a.date) meta += a.date + '  ';
+      if (a.category) meta += '[' + a.category + ']  ';
+      meta += a.path;
+      lines.push({
+        type: 'file',
+        prefix: connector,
+        name: a.title || '(untitled)',
+        meta: meta,
+        article: a
+      });
+    }
+    var container = document.getElementById('treeView');
+    container.innerHTML = '';
+    container.appendChild(buildFragment(lines));
+    document.getElementById('treeSummary').textContent =
+      articles.length + ' files (sorted by ' + sort + ')';
+  }
+
+  function buildFragment(lines) {
+    var frag = document.createDocumentFragment();
+    if (lines.length === 0) {
+      var empty = document.createElement('span');
+      empty.style.color = '#888';
+      empty.textContent = '(empty)';
+      frag.appendChild(empty);
+      return frag;
+    }
+    lines.forEach(function(l) {
+      var row = document.createElement('div');
+      row.style.whiteSpace = 'pre';
+
+      var prefixSpan = document.createTextNode(l.prefix);
+      row.appendChild(prefixSpan);
+
+      if (l.type === 'dir') {
+        var dirSpan = document.createElement('span');
+        dirSpan.className = 'tree-dir';
+        dirSpan.textContent = l.name;
+        row.appendChild(dirSpan);
+      } else {
+        var fileSpan = document.createElement('span');
+        fileSpan.className = 'tree-file';
+        fileSpan.textContent = l.name;
+        row.appendChild(fileSpan);
+
+        if (l.meta) {
+          var metaSpan = document.createElement('span');
+          metaSpan.className = 'tree-meta';
+          metaSpan.textContent = '  ' + l.meta;
+          row.appendChild(metaSpan);
+        }
+
+        // action buttons
+        var actions = document.createElement('span');
+        actions.className = 'tree-actions';
+
+        var editBtn = document.createElement('a');
+        editBtn.href = '/admin/articles/edit?path=' + encodeURIComponent(l.article.path);
+        editBtn.textContent = 'edit';
+        actions.appendChild(editBtn);
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'del';
+        delBtn.textContent = 'rm';
+        delBtn.onclick = (function(path) {
+          return function() { deleteArticle(path); };
+        })(l.article.path);
+        actions.appendChild(delBtn);
+
+        row.appendChild(actions);
+      }
+      frag.appendChild(row);
+    });
+    return frag;
   }
 
   window.deleteArticle = function(path) {
-    if (!confirm('Move "' + path + '" to trash?')) return;
+    if (!confirm('rm "' + path + '" ? (moves to .trash/)')) return;
     fetch('/admin/api/articles?path=' + encodeURIComponent(path), {
       method: 'DELETE',
       credentials: 'same-origin'

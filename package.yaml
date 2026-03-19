@@ -33,6 +33,7 @@ dependencies:
 - filepath
 - fsnotify
 - scotty
+- wai-extra
 - aeson
 - http-types
 - random

@@ -91,3 +91,13 @@ articleEditorPage env = do
 buildPage :: AdminEnv -> ActionM ()
 buildPage env = do
   renderPage env "build" M.empty
+
+-- | GET /admin/media
+mediaPage :: AdminEnv -> ActionM ()
+mediaPage env = do
+  renderPage env "media" M.empty
+
+-- | GET /admin/categories
+categoriesPage :: AdminEnv -> ActionM ()
+categoriesPage env = do
+  renderPage env "categories" M.empty

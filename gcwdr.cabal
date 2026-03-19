@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c23dbeecbc4a72393b5269742334823e69d344b24ee7eeb9947f536bd3f2c750
+-- hash: e31d6cb85314656e3dd3ca61027102131a6084d3273d4d8a41e90ba81224ab1e
 
 name:           gcwdr
 version:        0.1.0.0
@@ -40,6 +40,8 @@ library
       Server.Admin.Auth
       Server.Admin.Handlers.Articles
       Server.Admin.Handlers.Build
+      Server.Admin.Handlers.Categories
+      Server.Admin.Handlers.Media
       Server.Admin.Handlers.Pages
       Server.Admin.Handlers.Preview
       Server.Admin.Server
@@ -77,6 +79,7 @@ library
     , text
     , time
     , toml-parser
+    , wai-extra
   default-language: GHC2021
 
 executable gcwdr-exe
@@ -107,6 +110,7 @@ executable gcwdr-exe
     , text
     , time
     , toml-parser
+    , wai-extra
   default-language: GHC2021
 
 test-suite gcwdr-test
@@ -144,4 +148,5 @@ test-suite gcwdr-test
     , text
     , time
     , toml-parser
+    , wai-extra
   default-language: GHC2021

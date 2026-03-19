@@ -1,0 +1,139 @@
+<div class="admin-content">
+  <div class="toolbar">
+    <h1 style="border: none; margin: 0; padding: 0;">Media</h1>
+    <div class="spacer"></div>
+    <span id="currentDir" style="color: #888; font-size: 13px; margin-right: 8px;"></span>
+    <input type="file" id="uploadInput" multiple style="width: auto; font-size: 12px; border: none; padding: 0;">
+    <button class="btn btn-primary" onclick="doUpload()">Upload</button>
+    <button class="btn" onclick="doMkdir()">New Folder</button>
+  </div>
+
+  <div id="breadcrumb" style="margin-bottom: 12px; font-size: 13px; color: #888;"></div>
+
+  <div id="mediaGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;">
+    <div style="grid-column: 1 / -1; text-align: center; color: #888; padding: 40px;">Loading...</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var currentDir = 'uploads';
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('dir')) currentDir = urlParams.get('dir');
+
+  loadMedia();
+
+  function loadMedia() {
+    document.getElementById('currentDir').textContent = '/' + currentDir;
+    updateBreadcrumb();
+
+    fetch('/admin/api/media?dir=' + encodeURIComponent(currentDir), {credentials: 'same-origin'})
+      .then(function(r) { return r.json(); })
+      .then(function(files) {
+        var grid = document.getElementById('mediaGrid');
+        if (files.length === 0) {
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#888;padding:40px;">No files. Upload something!</div>';
+          return;
+        }
+        grid.innerHTML = '';
+        files.forEach(function(f) {
+          var card = document.createElement('div');
+          card.className = 'card';
+          card.style.cssText = 'padding:0;overflow:hidden;text-align:center;position:relative;';
+
+          var preview;
+          if (f.is_image) {
+            preview = '<img src="/static/' + esc(f.path) + '" style="width:100%;height:120px;object-fit:cover;display:block;">';
+          } else {
+            preview = '<div style="height:120px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#888;font-size:28px;">&#128196;</div>';
+          }
+
+          var sizeStr = f.size > 1048576
+            ? (f.size / 1048576).toFixed(1) + ' MB'
+            : f.size > 1024
+              ? (f.size / 1024).toFixed(1) + ' KB'
+              : f.size + ' B';
+
+          card.innerHTML = preview +
+            '<div style="padding:8px;">' +
+              '<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(f.name) + '">' + esc(f.name) + '</div>' +
+              '<div style="font-size:11px;color:#888;">' + sizeStr + '</div>' +
+              '<div style="margin-top:6px;display:flex;gap:4px;justify-content:center;">' +
+                '<button class="btn" style="padding:2px 8px;font-size:11px;" onclick="copyPath(\'' + escJs(f.path) + '\',\'' + escJs(f.name) + '\')">Copy</button>' +
+                '<button class="btn btn-danger" style="padding:2px 8px;font-size:11px;" onclick="doDelete(\'' + escJs(f.path) + '\')">Delete</button>' +
+              '</div>' +
+            '</div>';
+          grid.appendChild(card);
+        });
+      });
+  }
+
+  function updateBreadcrumb() {
+    var parts = currentDir.split('/');
+    var bc = document.getElementById('breadcrumb');
+    var html = '<a href="/admin/media" style="font-size:13px;">Root</a>';
+    var path = '';
+    parts.forEach(function(p) {
+      if (!p) return;
+      path += (path ? '/' : '') + p;
+      html += ' / <a href="/admin/media?dir=' + encodeURIComponent(path) + '" style="font-size:13px;">' + esc(p) + '</a>';
+    });
+    bc.innerHTML = html;
+  }
+
+  window.doUpload = function() {
+    var input = document.getElementById('uploadInput');
+    if (!input.files.length) { alert('Select files first'); return; }
+    var promises = [];
+    for (var i = 0; i < input.files.length; i++) {
+      var fd = new FormData();
+      fd.append('file', input.files[i]);
+      promises.push(
+        fetch('/admin/api/media/upload?dir=' + encodeURIComponent(currentDir), {
+          method: 'POST', credentials: 'same-origin', body: fd
+        })
+      );
+    }
+    Promise.all(promises).then(function() {
+      input.value = '';
+      loadMedia();
+    });
+  };
+
+  window.doMkdir = function() {
+    var name = prompt('Folder name:');
+    if (!name) return;
+    var fd = new FormData();
+    fd.append('dir', currentDir + '/' + name);
+    fetch('/admin/api/media/mkdir', {method: 'POST', credentials: 'same-origin', body: fd})
+      .then(function(r) {
+        if (r.ok) { window.location.href = '/admin/media?dir=' + encodeURIComponent(currentDir + '/' + name); }
+        else r.text().then(function(t) { alert('Error: ' + t); });
+      });
+  };
+
+  window.copyPath = function(path, name) {
+    var md = '![' + name + '](/static/' + path + ')';
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(md).then(function() { alert('Copied: ' + md); });
+    } else {
+      prompt('Copy this markdown:', md);
+    }
+  };
+
+  window.doDelete = function(path) {
+    if (!confirm('Delete ' + path + '?')) return;
+    fetch('/admin/api/media?path=' + encodeURIComponent(path), {
+      method: 'DELETE', credentials: 'same-origin'
+    }).then(function() { loadMedia(); });
+  };
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function escJs(s) { return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+})();
+</script>

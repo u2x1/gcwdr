@@ -1,0 +1,50 @@
+<div class="admin-content">
+  <div class="toolbar">
+    <h1 style="border: none; margin: 0; padding: 0;">Categories</h1>
+    <div class="spacer"></div>
+  </div>
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Article Count</th>
+          <th style="width: 140px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="categoryList">
+        <tr><td colspan="3" style="text-align: center; color: #888; padding: 24px;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+(function() {
+  fetch('/admin/api/categories', {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(categories) {
+      var tbody = document.getElementById('categoryList');
+      if (categories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#888;padding:24px;">No categories found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = '';
+      categories.forEach(function(c) {
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td style="font-weight:600;">' + esc(c.name) + '</td>' +
+          '<td style="color:#888;font-size:14px;">' + c.count + '</td>' +
+          '<td>' +
+            '<a href="/admin/articles?category=' + encodeURIComponent(c.name) + '" class="btn" style="padding:3px 10px;font-size:12px;">View Articles</a>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+    });
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+})();
+</script>

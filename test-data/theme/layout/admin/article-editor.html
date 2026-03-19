@@ -2,7 +2,9 @@
   <div class="toolbar">
     <h1 style="border: none; margin: 0; padding: 0;" id="editorTitle">Article Editor</h1>
     <div class="spacer"></div>
+    <span id="previewStatus" style="color: #888; font-size: 12px; margin-right: 8px;"></span>
     <button class="btn" onclick="doPreview()">Preview</button>
+    <button class="btn" onclick="openMediaModal()">Insert Image</button>
     <button class="btn btn-primary" onclick="doSave()">Save</button>
     <a href="/admin/articles" class="btn">Back</a>
   </div>
@@ -15,27 +17,57 @@
       <textarea id="articleContent" placeholder="---&#10;title: My Article&#10;date: 2026-01-01&#10;category: General&#10;template: post&#10;---&#10;&#10;Your markdown content here..."></textarea>
     </div>
     <div class="preview-pane">
-      <iframe id="previewFrame" srcdoc="<p style='padding:2rem;color:#aaa;font-family:Source Sans Pro,sans-serif;'>Click Preview to see rendered output</p>"></iframe>
+      <iframe id="previewFrame" srcdoc="<p style='padding:2rem;color:#aaa;font-family:Source Sans Pro,sans-serif;'>Preview updates automatically as you type</p>"></iframe>
     </div>
   </div>
 </div>
+
+<!-- Insert Image Modal -->
+<div id="mediaModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:6px; padding:24px; width:680px; max-height:80vh; overflow-y:auto; position:relative;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h2 style="margin:0; font-size:18px;">Insert Image</h2>
+      <button class="btn" onclick="closeMediaModal()" style="padding:2px 10px;">&times;</button>
+    </div>
+    <div style="margin-bottom:12px;">
+      <input type="file" id="modalUploadInput" accept="image/*" style="width:auto;">
+      <button class="btn" onclick="modalUpload()" style="margin-left:8px;">Upload</button>
+    </div>
+    <div id="modalMediaGrid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:10px;"></div>
+  </div>
+</div>
+
 <script>
 (function() {
   var mode = '[- this.editor_mode -]';
   var pathInput = document.getElementById('articlePath');
   var contentArea = document.getElementById('articleContent');
   var title = document.getElementById('editorTitle');
+  var previewStatus = document.getElementById('previewStatus');
+  var debounceTimer = null;
 
   if (mode === 'edit') {
     title.textContent = 'Edit Article';
     pathInput.value = '[- this.article_path -]';
     fetch('/admin/api/articles/get?path=' + encodeURIComponent('[- this.article_path -]'), {credentials: 'same-origin'})
       .then(function(r) { return r.json(); })
-      .then(function(data) { contentArea.value = data.raw_content; });
+      .then(function(data) {
+        contentArea.value = data.raw_content;
+        doPreview();
+      });
   } else {
     title.textContent = 'New Article';
     pathInput.value = '[- this.article_dir -]post/';
   }
+
+  // Debounced live preview on input
+  contentArea.addEventListener('input', function() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    previewStatus.textContent = 'Typing...';
+    debounceTimer = setTimeout(function() {
+      doPreview();
+    }, 800);
+  });
 
   window.doSave = function() {
     var path = pathInput.value.trim();
@@ -61,6 +93,8 @@
 
   window.doPreview = function() {
     var content = contentArea.value;
+    if (!content.trim()) return;
+    previewStatus.textContent = 'Updating...';
     fetch('/admin/api/preview', {
       method: 'POST',
       credentials: 'same-origin',
@@ -69,7 +103,77 @@
     }).then(function(r) { return r.text(); })
       .then(function(html) {
         document.getElementById('previewFrame').srcdoc = html;
+        previewStatus.textContent = '';
+      })
+      .catch(function() {
+        previewStatus.textContent = 'Preview error';
       });
   };
+
+  // --- Media Modal ---
+  window.openMediaModal = function() {
+    var modal = document.getElementById('mediaModal');
+    modal.style.display = 'flex';
+    loadModalMedia();
+  };
+
+  window.closeMediaModal = function() {
+    document.getElementById('mediaModal').style.display = 'none';
+  };
+
+  function loadModalMedia() {
+    fetch('/admin/api/media?dir=uploads', {credentials: 'same-origin'})
+      .then(function(r) { return r.json(); })
+      .then(function(files) {
+        var grid = document.getElementById('modalMediaGrid');
+        grid.innerHTML = '';
+        var images = files.filter(function(f) { return f.is_image; });
+        if (images.length === 0) {
+          grid.innerHTML = '<p style="grid-column:1/-1;color:#888;text-align:center;padding:20px;">No images yet. Upload one above.</p>';
+          return;
+        }
+        images.forEach(function(f) {
+          var div = document.createElement('div');
+          div.style.cssText = 'cursor:pointer;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;text-align:center;';
+          div.innerHTML = '<img src="/static/' + f.path + '" style="width:100%;height:100px;object-fit:cover;">' +
+            '<div style="padding:4px;font-size:11px;color:#666;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(f.name) + '</div>';
+          div.onclick = function() {
+            insertAtCursor('![' + f.name + '](/static/' + f.path + ')');
+            closeMediaModal();
+          };
+          grid.appendChild(div);
+        });
+      });
+  }
+
+  window.modalUpload = function() {
+    var input = document.getElementById('modalUploadInput');
+    if (!input.files.length) { alert('Select a file first'); return; }
+    var fd = new FormData();
+    fd.append('file', input.files[0]);
+    fd.append('dir', 'uploads');
+    fetch('/admin/api/media/upload', {method: 'POST', credentials: 'same-origin', body: fd})
+      .then(function(r) {
+        if (r.ok) { input.value = ''; loadModalMedia(); }
+        else r.text().then(function(t) { alert('Upload error: ' + t); });
+      });
+  };
+
+  function insertAtCursor(text) {
+    var ta = contentArea;
+    var start = ta.selectionStart;
+    var end = ta.selectionEnd;
+    ta.value = ta.value.substring(0, start) + text + ta.value.substring(end);
+    ta.selectionStart = ta.selectionEnd = start + text.length;
+    ta.focus();
+    // Trigger live preview
+    ta.dispatchEvent(new Event('input'));
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
 })();
 </script>
