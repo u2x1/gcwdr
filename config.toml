@@ -8,3 +8,9 @@ localServerPort  = 4000
 [[menu]]
 name = "Index"
 loc  = "/"
+
+[admin]
+password_hash = "4d2c24b40468afa67e01fe787c03cf292b90eea58a0f88811a4a409f8464f7c7"
+password_salt = "5257071a60f92154e7fe904a877c6016ce52295cfbc8745de95cefe6f90f199c"
+port = 4001
+session_ttl = 86400

@@ -1,0 +1,24 @@
+<nav style="
+  position: fixed;
+  left: 0; top: 0;
+  width: 180px;
+  height: 100vh;
+  background: #fff;
+  border-right: 1px solid #e0e0e0;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Source Sans Pro', sans-serif;
+">
+  <div style="font-family: 'PT Serif', serif; font-size: 18px; font-weight: bold; color: #111; margin-bottom: 28px; padding-left: 8px;">
+    gcwdr
+  </div>
+  <a href="/admin/" style="display: block; padding: 6px 8px; margin-bottom: 2px; border-radius: 3px; color: #333; text-decoration: none; font-size: 14px;">Dashboard</a>
+  <a href="/admin/articles" style="display: block; padding: 6px 8px; margin-bottom: 2px; border-radius: 3px; color: #333; text-decoration: none; font-size: 14px;">Articles</a>
+  <a href="/admin/articles/new" style="display: block; padding: 6px 8px; margin-bottom: 2px; border-radius: 3px; color: #333; text-decoration: none; font-size: 14px;">New Article</a>
+  <a href="/admin/build" style="display: block; padding: 6px 8px; margin-bottom: 2px; border-radius: 3px; color: #333; text-decoration: none; font-size: 14px;">Build</a>
+  <div style="flex: 1;"></div>
+  <form method="POST" action="/admin/logout" style="margin: 0;">
+    <button type="submit" class="btn" style="width: 100%; font-size: 13px;">Logout</button>
+  </form>
+</nav>

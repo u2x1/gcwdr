@@ -6,6 +6,8 @@ import           Data.Config.Type               ( Config
                                                   , localServerPort
                                                   , outputDir
                                                   , themeDir
+                                                  , adminPasswordHash
+                                                  , adminPasswordSalt
                                                   )
                                                 )
 import           Data.Foldable                  ( traverse_ )
@@ -16,6 +18,8 @@ import           Utils.Git                      ( commit
                                                 , deploy
                                                 )
 import           Server.Preview                 ( previewServer )
+import           Server.Admin.Server            ( adminServer )
+import           Server.Admin.Setup             ( adminSetup )
 
 import           Control.Concurrent             ( forkIO
                                                 , threadDelay
@@ -62,6 +66,8 @@ main = do
       previewServer (outputDir config) (localServerPort config)
     Right (Command (Commit msg) _) -> commit msg (outputDir config)
     Right (Command Deploy       _) -> deploy (outputDir config)
+    Right (Command Admin        _) -> adminServer config
+    Right (Command AdminSetup   _) -> adminSetup config
     Right (Command Help         _) -> putStrLn usage
 
     Left err -> putStrLn ("Error: " <> err) >> putStrLn usage
@@ -78,12 +84,14 @@ usage =
         \  commit <Message>\tCommit to git.\n\
         \  help\t\t\tShow this help text.\n\
         \  deploy\t\t\tPush the static html files to Github.\n\
+        \  admin\t\t\tStart admin server on port 4001.\n\
+        \  admin-setup\t\tSet up admin password.\n\
         \available options:\n\
         \  -g: generate output files\n\
         \  -w: watch file changes"
 
 data Command = Command Mode [Flag]
-data Mode = Generate | Server | Commit String | Deploy | Help
+data Mode = Generate | Server | Commit String | Deploy | Help | Admin | AdminSetup
 data Flag = PreGenerate | Watch
 
 parseArgs :: [String] -> Either String Command
@@ -96,11 +104,13 @@ parseArgs args =
 
   parseMode []       = Left "Empty command."
   parseMode (x : xs) = case x of
-    "generate" -> Right Generate
-    "server"   -> Right Server
-    "deploy"   -> Right Deploy
-    "help"     -> Right Help
-    "commit"   -> case xs of
+    "generate"    -> Right Generate
+    "server"      -> Right Server
+    "deploy"      -> Right Deploy
+    "help"        -> Right Help
+    "admin"       -> Right Admin
+    "admin-setup" -> Right AdminSetup
+    "commit"      -> case xs of
       []      -> Left "Commit message can not be empty."
       (m : _) -> Right $ Commit m
     _ -> Left "Unknown command."

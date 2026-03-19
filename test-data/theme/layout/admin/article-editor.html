@@ -1,0 +1,75 @@
+<div class="admin-content">
+  <div class="toolbar">
+    <h1 style="border: none; margin: 0; padding: 0;" id="editorTitle">Article Editor</h1>
+    <div class="spacer"></div>
+    <button class="btn" onclick="doPreview()">Preview</button>
+    <button class="btn btn-primary" onclick="doSave()">Save</button>
+    <a href="/admin/articles" class="btn">Back</a>
+  </div>
+  <div style="margin-bottom: 12px;">
+    <label style="color: #888; font-size: 12px; display: block; margin-bottom: 4px;">File Path</label>
+    <input type="text" id="articlePath" placeholder="test-data/content/post/my-article.md" style="font-family: Consolas, Monaco, monospace; font-size: 13px;">
+  </div>
+  <div class="editor-container">
+    <div class="editor-pane">
+      <textarea id="articleContent" placeholder="---&#10;title: My Article&#10;date: 2026-01-01&#10;category: General&#10;template: post&#10;---&#10;&#10;Your markdown content here..."></textarea>
+    </div>
+    <div class="preview-pane">
+      <iframe id="previewFrame" srcdoc="<p style='padding:2rem;color:#aaa;font-family:Source Sans Pro,sans-serif;'>Click Preview to see rendered output</p>"></iframe>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  var mode = '[- this.editor_mode -]';
+  var pathInput = document.getElementById('articlePath');
+  var contentArea = document.getElementById('articleContent');
+  var title = document.getElementById('editorTitle');
+
+  if (mode === 'edit') {
+    title.textContent = 'Edit Article';
+    pathInput.value = '[- this.article_path -]';
+    fetch('/admin/api/articles/get?path=' + encodeURIComponent('[- this.article_path -]'), {credentials: 'same-origin'})
+      .then(function(r) { return r.json(); })
+      .then(function(data) { contentArea.value = data.raw_content; });
+  } else {
+    title.textContent = 'New Article';
+    pathInput.value = '[- this.article_dir -]post/';
+  }
+
+  window.doSave = function() {
+    var path = pathInput.value.trim();
+    var content = contentArea.value;
+    if (!path) { alert('Please enter a file path'); return; }
+    var method = mode === 'edit' ? 'PUT' : 'POST';
+    fetch('/admin/api/articles', {
+      method: method,
+      credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({path: path, raw_content: content})
+    }).then(function(r) {
+      if (r.ok) {
+        alert('Saved successfully!');
+        if (mode === 'new') {
+          window.location.href = '/admin/articles/edit?path=' + encodeURIComponent(path);
+        }
+      } else {
+        r.text().then(function(t) { alert('Error: ' + t); });
+      }
+    });
+  };
+
+  window.doPreview = function() {
+    var content = contentArea.value;
+    fetch('/admin/api/preview', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({raw_content: content})
+    }).then(function(r) { return r.text(); })
+      .then(function(html) {
+        document.getElementById('previewFrame').srcdoc = html;
+      });
+  };
+})();
+</script>

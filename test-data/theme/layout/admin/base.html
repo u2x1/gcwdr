@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>gcwdr Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #fafafa;
+      color: #333;
+      min-height: 100vh;
+    }
+    .admin-layout { display: flex; min-height: 100vh; }
+    .admin-content {
+      flex: 1;
+      padding: 40px 60px;
+      margin-left: 180px;
+      max-width: 960px;
+    }
+    h1, h2, h3, h4 { font-family: "PT Serif", serif; color: #111; }
+    h1 { font-size: 28px; line-height: 34px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid #ddd; }
+    h2 { font-size: 22px; margin-bottom: 14px; }
+    h3 { font-size: 18px; margin-bottom: 10px; }
+    a { color: #000; text-decoration: underline; }
+    a:hover { color: #555; }
+    .btn {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #fff;
+      color: #333;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: 'Source Sans Pro', sans-serif;
+      text-decoration: none;
+      line-height: 1.4;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .btn:hover { border-color: #999; background: #f5f5f5; color: #111; }
+    .btn-primary { background: #333; color: #fff; border-color: #333; }
+    .btn-primary:hover { background: #555; border-color: #555; color: #fff; }
+    .btn-danger { color: #c0392b; border-color: #e0a8a1; }
+    .btn-danger:hover { background: #fdf0ef; border-color: #c0392b; color: #c0392b; }
+    .btn-success { color: #27763a; border-color: #a3d4ae; }
+    .btn-success:hover { background: #f0faf3; border-color: #27763a; color: #27763a; }
+    input, textarea, select {
+      background: #fff;
+      border: 1px solid #ccc;
+      color: #333;
+      padding: 8px 10px;
+      border-radius: 3px;
+      font-size: 14px;
+      font-family: 'Source Sans Pro', sans-serif;
+      width: 100%;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #888; }
+    textarea { font-family: 'Consolas', 'Monaco', monospace; resize: vertical; font-size: 13px; line-height: 1.5; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+    th { color: #888; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #ddd; }
+    tr:hover { background: #f7f7f7; }
+    .card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .flash { padding: 10px 14px; border-radius: 3px; margin-bottom: 16px; font-size: 14px; }
+    .flash-error { background: #fdf0ef; border: 1px solid #e0a8a1; color: #c0392b; }
+    .flash-success { background: #f0faf3; border: 1px solid #a3d4ae; color: #27763a; }
+    .stats { display: flex; gap: 16px; margin-bottom: 20px; }
+    .stat-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 20px;
+      flex: 1;
+      text-align: center;
+    }
+    .stat-card .value { font-size: 32px; font-weight: bold; color: #111; font-family: "PT Serif", serif; }
+    .stat-card .label { color: #888; font-size: 13px; margin-top: 4px; }
+    .status-idle { color: #888; }
+    .status-running { color: #e67e22; }
+    .status-success { color: #27763a; }
+    .status-error { color: #c0392b; }
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      width: 100%;
+    }
+    .login-box {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 32px;
+      width: 340px;
+    }
+    .login-box h1 { text-align: center; border: none; font-size: 24px; margin-bottom: 24px; }
+    .login-box .btn { width: 100%; margin-top: 14px; }
+    .editor-container { display: flex; gap: 16px; height: calc(100vh - 220px); }
+    .editor-pane { flex: 1; display: flex; flex-direction: column; }
+    .editor-pane textarea { flex: 1; min-height: 400px; }
+    .preview-pane { flex: 1; }
+    .preview-pane iframe {
+      width: 100%;
+      height: 100%;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      background: #fff;
+    }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
+    .toolbar .spacer { flex: 1; }
+    #build-log {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 3px;
+      padding: 14px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      min-height: 80px;
+      margin-top: 12px;
+      white-space: pre-wrap;
+      color: #555;
+    }
+    @media only screen and (max-width: 767px) {
+      .admin-content { margin-left: 0; padding: 16px; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    [- this.body_content -]
+  </div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<div class="login-container">
+  <div class="login-box">
+    <h1>gcwdr</h1>
+    [- ifdef this.login_error -]
+    <div class="flash flash-error">[- this.login_error -]</div>
+    [- else -]
+    [- end -]
+    <form method="POST" action="/admin/login">
+      <label style="color: #888; font-size: 13px; display: block; margin-bottom: 6px;">Password</label>
+      <input type="password" name="password" placeholder="Enter admin password" autofocus>
+      <button type="submit" class="btn btn-primary">Login</button>
+    </form>
+  </div>
+</div>

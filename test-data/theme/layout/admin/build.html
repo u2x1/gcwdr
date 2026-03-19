@@ -1,0 +1,88 @@
+<div class="admin-content">
+  <h1>Build Site</h1>
+  <div class="card">
+    <p style="margin-bottom: 14px; color: #888; font-size: 14px;">
+      Generate the static site from your articles and theme.
+    </p>
+    <button class="btn btn-primary" id="buildBtn" onclick="triggerBuild()">Build Now</button>
+    <span id="buildSpinner" style="display:none; margin-left: 12px; color: #e67e22; font-size: 14px;">Building...</span>
+  </div>
+  <div class="card">
+    <h3>Status</h3>
+    <div id="buildStatus" class="status-idle" style="margin-top: 8px; font-size: 14px;">Checking...</div>
+    <div id="build-log"></div>
+  </div>
+</div>
+<script>
+(function() {
+  var polling = false;
+
+  function checkStatus() {
+    fetch('/admin/api/build/status', {credentials: 'same-origin'})
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var el = document.getElementById('buildStatus');
+        var log = document.getElementById('build-log');
+        var btn = document.getElementById('buildBtn');
+        var spinner = document.getElementById('buildSpinner');
+
+        if (data.status === 'idle') {
+          el.className = 'status-idle';
+          el.textContent = 'Idle';
+          btn.disabled = false;
+          spinner.style.display = 'none';
+          log.textContent = '';
+          polling = false;
+        } else if (data.status === 'running') {
+          el.className = 'status-running';
+          el.textContent = 'Building...';
+          btn.disabled = true;
+          spinner.style.display = 'inline';
+          log.textContent = '';
+          if (!polling) {
+            polling = true;
+            setTimeout(pollStatus, 2000);
+          }
+        } else if (data.status === 'finished') {
+          polling = false;
+          btn.disabled = false;
+          spinner.style.display = 'none';
+          if (data.success) {
+            el.className = 'status-success';
+            el.textContent = 'Completed successfully';
+          } else {
+            el.className = 'status-error';
+            el.textContent = 'Failed';
+          }
+          log.textContent = data.message || '';
+        }
+      });
+  }
+
+  function pollStatus() {
+    if (!polling) return;
+    checkStatus();
+    setTimeout(function() { if (polling) pollStatus(); }, 2000);
+  }
+
+  window.triggerBuild = function() {
+    document.getElementById('buildBtn').disabled = true;
+    document.getElementById('buildSpinner').style.display = 'inline';
+    fetch('/admin/api/build/trigger', {
+      method: 'POST',
+      credentials: 'same-origin'
+    }).then(function(r) {
+      if (r.ok) {
+        polling = true;
+        pollStatus();
+      } else {
+        r.text().then(function(t) { alert('Error: ' + t); });
+        document.getElementById('buildBtn').disabled = false;
+        document.getElementById('buildSpinner').style.display = 'none';
+      }
+    });
+  };
+
+  checkStatus();
+})();
+</script>

@@ -35,6 +35,7 @@ dependencies:
 - scotty
 - aeson
 - http-types
+- random
 
 ghc-options:
 - -Wall
