@@ -6,7 +6,7 @@ import qualified Data.Text.IO              as TIO
 import           Data.Time                  ( getCurrentTime )
 import           System.IO                  ( hFlush, stdout, hSetEcho, stdin )
 
-import           Data.Config.Type           ( Config(..) )
+import           Config.Type                ( Config(..) )
 import           Server.Admin.Auth          ( hashPassword, toHex, sha256 )
 import qualified Data.Text.Encoding        as TE
 import           Utils.Logging              ( LogTag(Info), logWT )

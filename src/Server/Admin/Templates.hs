@@ -6,9 +6,9 @@ import qualified Data.Text                 as T
 import qualified Data.Text.IO              as TIO
 import           System.FilePath            ( (</>) )
 
-import           Data.Config.Type           ( Config(..) )
-import           Data.Template              ( convertTP )
-import           Data.Template.Type         ( ObjectTree(..) )
+import           Config.Type                ( Config(..) )
+import           Template.Render            ( convertTP )
+import           Template.Type              ( ObjectTree(..) )
 
 -- | Render an admin template with two-pass rendering:
 -- 1. Render the page template with the given variables → body_content

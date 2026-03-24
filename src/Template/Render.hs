@@ -1,9 +1,8 @@
-module Data.Template where
+module Template.Render where
 
 import           Data.Attoparsec.Text           ( many'
                                                 , parseOnly
                                                 )
-import           Data.Maybe                     ( catMaybes )
 import           Data.Either                    ( lefts
                                                 , rights
                                                 )
@@ -11,24 +10,21 @@ import           Data.Map.Lazy                 as M
                                                 ( (!?)
                                                 , Map
                                                 , insert
-                                                , singleton
                                                 )
 import           Data.Text                     as T
                                                 ( Text
                                                 , init
                                                 , last
-                                                , unpack
-                                                )
-import           Data.Time                      ( UTCTime
-                                                , defaultTimeLocale
-                                                , parseTimeOrError
                                                 )
 
-import           Data.Template.Parser           ( stmt )
-import           Data.Template.Type             ( ObjectTree(..)
+import           Template.Parser                ( stmt )
+import           Template.Type                  ( ObjectTree(..)
                                                 , Stmt(..)
                                                 , getType
                                                 , showObjTree
+                                                )
+import           Article.Query                  ( getNode
+                                                , getLeaf'
                                                 )
 
 convertTP :: ObjectTree -> Text -> Either [String] Text
@@ -143,50 +139,3 @@ convertDot objs (DotStmt mems) =
         )
   in  run objs mems
 convertDot _ s = Left ("unexpected statement: " <> (show s))
-
-
-
-getNode :: Text -> ObjectTree -> Maybe ObjectTree
-getNode key (ObjNode objs) = case objs !? key of
-  Just x@(ObjNode _) -> Just x
-  _                  -> Nothing
-getNode _ _ = Nothing
-
-getLeaf :: Text -> ObjectTree -> Maybe ObjectTree
-getLeaf key (ObjNode objs) = case objs !? key of
-  Just x@(ObjLeaf _) -> Just x
-  _                  -> Nothing
-getLeaf _ _ = Nothing
-
-getNode' :: Text -> ObjectTree -> Maybe (Map Text ObjectTree)
-getNode' key obj = case getNode key obj of
-  Just (ObjNode x) -> Just x
-  _                -> Nothing
-
-getLeaf' :: Text -> ObjectTree -> Maybe Text
-getLeaf' key obj = case getLeaf key obj of
-  Just (ObjLeaf x) -> Just x
-  _                -> Nothing
-
-singletonObjNode :: [Text] -> Map Text ObjectTree -> Map Text ObjectTree
-singletonObjNode []       = id
-singletonObjNode (y : ys) = (singleton y) . ObjNode . (singletonObjNode ys)
-
-
-addGlb :: Map Text ObjectTree -> ObjectTree -> ObjectTree
-addGlb glbRes x = ObjNode (M.insert "this" x glbRes)
-
-toNodeList :: [ObjectTree] -> ObjectTree
-toNodeList = ObjNodeList . catMaybes . fmap extract
-  where extract (ObjNode x) = Just x
-        extract _ = Nothing
-
-getDate :: ObjectTree -> Maybe UTCTime
-getDate obj =
-  (\x ->
-      parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (T.unpack x) :: UTCTime
-    )
-    <$> (getLeaf' "date" obj)
-
-getCategory :: ObjectTree -> Maybe Text
-getCategory = getLeaf' "category"

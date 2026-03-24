@@ -3,10 +3,10 @@ module Spec where
 import           Data.Attoparsec.Text           ( many'
                                                 , parseOnly
                                                 )
-import           Data.Markdown.Parser           ( mdElem )
-import           Data.Markdown.Type
-import           Data.Template.Parser           ( stmt )
-import           Data.Template.Type             ( Stmt(..) )
+import           Markdown.Parser                ( mdElem )
+import           Markdown.Type
+import           Template.Parser                ( stmt )
+import           Template.Type                  ( Stmt(..) )
 import           Data.Text                      ( Text )
 import           Prelude                 hiding ( unlines )
 import           Test.Hspec                     ( Spec

@@ -10,8 +10,8 @@ import Data.Text             ( Text )
 import Data.Time             ( UTCTime )
 import GHC.Generics          ( Generic )
 
-import Data.Config.Type      ( Config )
-import Data.Template.Type    ( ObjectTree )
+import Config.Type            ( Config )
+import Template.Type          ( ObjectTree )
 
 -- | Session token + expiry
 data Session = Session

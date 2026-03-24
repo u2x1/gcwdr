@@ -1,4 +1,4 @@
-module Data.Template.Parser where
+module Template.Parser where
 
 import           Control.Applicative            ( Alternative((<|>), many, some)
                                                 )
@@ -18,7 +18,7 @@ import           Data.Text                     as T
                                                 , empty
                                                 )
 
-import           Data.Template.Type             ( Stmt(..) )
+import           Template.Type                  ( Stmt(..) )
 
 stmt :: Parser Stmt
 stmt = ifdefStmt <|> foreachStmt <|> stmt' <|> raw
@@ -76,4 +76,3 @@ raw :: Parser Stmt
 raw = do
   w <- anyChar -- always ignore first character
   Raw . (T.singleton w <>) <$> takeTill (== '[') -- take till meeting '['
-

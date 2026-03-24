@@ -14,7 +14,7 @@ import           Web.Scotty                 ( scotty, get, post, put, delete
 
 import           System.FilePath            ( (</>) )
 
-import           Data.Config.Type           ( Config(..) )
+import           Config.Type                ( Config(..) )
 import           Server.Admin.Auth
 import           Server.Admin.Types
 

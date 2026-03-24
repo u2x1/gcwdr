@@ -1,21 +1,13 @@
-module Entry.Read where
+module Site.Generate where
 
-import           Control.Exception              ( catchJust )
-import           Control.Monad                  ( filterM
-                                                , guard
-                                                )
 import           Data.Foldable                  ( traverse_ )
-import           Data.List.Extra                ( dropWhileEnd
-                                                , isPrefixOf
+import           Data.List.Extra                ( isPrefixOf
                                                 , isSuffixOf
                                                 , nub
                                                 , sortOn
-                                                , takeWhileEnd
                                                 )
 import           Data.Map.Lazy                 as M
-                                                ( Map
-                                                , fromList
-                                                , singleton
+                                                ( singleton
                                                 )
 import           Data.Maybe                     ( catMaybes )
 import           Data.Ord                       ( Down(Down) )
@@ -25,65 +17,38 @@ import           Data.Text.IO                  as T
                                                 ( readFile
                                                 , writeFile
                                                 )
-import           System.Directory               ( copyFile
-                                                , createDirectory
-                                                , createDirectoryIfMissing
-                                                , doesDirectoryExist
-                                                , getDirectoryContents
-                                                , listDirectory
-                                                , removeDirectoryRecursive
-                                                , removeFile
-                                                )
-import           System.IO.Error                ( isDoesNotExistError )
+import           System.Directory               ( createDirectoryIfMissing )
+import           System.FilePath                ( (</>) )
 
-import           Data.Config                    ( decodeConfigFile )
-import           Data.Config.Type               ( Config
+import           Article.Parse                  ( parsePost )
+import           Article.Query                  ( getCategory
+                                                , getDate
+                                                , getLeaf'
+                                                , getNode
+                                                )
+import           Article.Transform              ( addGlb
+                                                , runAtclModule
+                                                , toNodeList
+                                                )
+import           Config.Type                    ( Config
                                                   ( articleDir
                                                   , outputDir
                                                   , siteUrl
                                                   , themeDir
                                                   )
                                                 )
-import           Data.Markdown                  ( parsePost )
-import           Data.Template                  ( addGlb
-                                                , convertTP
-                                                , getCategory
-                                                , getDate
-                                                , getLeaf'
-                                                , getNode
-                                                , toNodeList
+import           Template.Render                ( convertTP )
+import           Template.Type                  ( ObjectTree(..) )
+import           Site.FileUtils                 ( getAllFiles
+                                                , copyFiles
+                                                , getGlbRes
+                                                , removeDirContent
                                                 )
-import           Data.Template.Type             ( ObjectTree(..)
-                                                , ToObjectTree(toObjectTree)
-                                                )
-import           Module.Console                 ( runAtclModule )
+import           Site.Sitemap                   ( getSitemap )
 import           Utils.Logging                  ( LogTag(Info)
                                                 , logErrAndTerminate
                                                 , logWT
                                                 )
-import           Utils.SitemapGenerator         ( getSitemap )
-
-import           System.FilePath                ( (</>) )
-
-getGlbRes :: FilePath -> [FilePath] -> IO (Map Text ObjectTree)
-getGlbRes themePath allFiles = do
-  let partialsRes =
-        filter (isPrefixOf (themePath </> "layout/partial")) allFiles
-  partials <- M.singleton "partials" . ObjNode <$> getPartials partialsRes
-  config   <- M.singleton "config" . toObjectTree <$> parseConfig "config.toml"
-  pure $ M.singleton "global" $ ObjNode (config <> partials)
- where
-  getPartials ps = do
-    rawPartials <- traverse T.readFile ps
-    pure $ fromList $ zip (fmap (T.pack . takeWhileEnd (/= '/')) ps)
-                          (ObjLeaf <$> rawPartials)
-
-parseConfig :: FilePath -> IO Config
-parseConfig path = do
-  tomlRes <- decodeConfigFile path
-  case tomlRes of
-    Left  errs   -> logErrAndTerminate "Parsing config" errs
-    Right config -> pure config
 
 gnrtPublic :: Config -> IO ()
 gnrtPublic cfg = do
@@ -214,46 +179,3 @@ gnrtSitemap outputPath site objs = do
   logWT Info $ "generating sitemap at " <> siteMapPath
   sitemap <- getSitemap site objs
   T.writeFile siteMapPath sitemap
-
-
-copyFiles :: FilePath -> FilePath -> [FilePath] -> IO ()
-copyFiles outputPath inputPath = traverse_
-  (\source -> copyFile' source (getTarget source))
- where
-  copyFile' source target = do
-    logWT Info $ "copying file " <> source <> " to " <> target
-    catchJust (guard . isDoesNotExistError)
-              (copyFile source target)
-              (\_ -> cr8Dir target >> copyFile source target)
-  getTarget = (outputPath </>) . drop (length inputPath)
-  cr8Dir path = createDirectoryIfMissing True (dropWhileEnd (/= '/') path)
-
-getAllFiles :: FilePath -> IO [FilePath]
-getAllFiles root' = do
-  -- Prevent it from walking into ".git", ".stack-work" dirs
-  contents <- filter (not . isPrefixOf ".") <$> listDirectory root'
-  let root         = if last root' == '/' then root' else root' <> "/"
-      filesAndDirs = (root </>) <$> contents
-
-  dirs     <- filterM doesDirectoryExist filesAndDirs
-  subFiles <- if null dirs
-    then pure []
-    else mconcat <$> traverse getAllFiles dirs
-
-  let files = filter (not . (`elem` dirs)) filesAndDirs
-  return (files <> subFiles)
-
--- Remove anything except filename started with "." like ".git"
-removeDirContent :: FilePath -> IO ()
-removeDirContent root = do
-  logWT Info $ "removing dir content " <> root
-  ext <- doesDirectoryExist root
-  if ext
-    then do
-      contents <- filter (not . isPrefixOf ".") <$> getDirectoryContents root
-      let filesAndDirs = (root </>) <$> contents
-      dirs <- filterM doesDirectoryExist filesAndDirs
-      let files = filter (not . (`elem` dirs)) filesAndDirs
-      traverse_ removeDirectoryRecursive dirs
-      traverse_ removeFile               files
-    else createDirectory root >> pure ()

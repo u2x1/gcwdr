@@ -1,18 +1,16 @@
 module Main where
 
-import           Data.Config                    ( decodeConfigFile )
-import           Data.Config.Type               ( Config
+import           Config.Parse                   ( decodeConfigFile )
+import           Config.Type                    ( Config
                                                   ( articleDir
                                                   , localServerPort
                                                   , outputDir
                                                   , themeDir
-                                                  , adminPasswordHash
-                                                  , adminPasswordSalt
                                                   )
                                                 )
 import           Data.Foldable                  ( traverse_ )
 import           Data.Maybe                     ( mapMaybe )
-import           Entry.Read                     ( gnrtPublic )
+import           Site.Generate                  ( gnrtPublic )
 import           System.Environment             ( getArgs )
 import           Utils.Git                      ( commit
                                                 , deploy

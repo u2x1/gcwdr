@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e31d6cb85314656e3dd3ca61027102131a6084d3273d4d8a41e90ba81224ab1e
+-- hash: c56f4df2a80e8052fb76f362b5ec6d6f8b9bacd6668ef0524ed56162bbc4a2e9
 
 name:           gcwdr
 version:        0.1.0.0
@@ -26,17 +26,17 @@ source-repository head
 
 library
   exposed-modules:
-      Data.Config
-      Data.Config.Type
-      Data.Markdown
-      Data.Markdown.Parser
-      Data.Markdown.Type
-      Data.Template
-      Data.Template.Parser
-      Data.Template.Type
-      Entry.Read
-      Module.Console
-      Module.Encrypt
+      Article.Encrypt
+      Article.Parse
+      Article.Query
+      Article.Transform
+      Article.Type
+      Config.Parse
+      Config.ToObjectTree
+      Config.Type
+      Markdown.Parser
+      Markdown.Render
+      Markdown.Type
       Server.Admin.Auth
       Server.Admin.Handlers.Articles
       Server.Admin.Handlers.Build
@@ -49,9 +49,14 @@ library
       Server.Admin.Templates
       Server.Admin.Types
       Server.Preview
+      Site.FileUtils
+      Site.Generate
+      Site.Sitemap
+      Template.Parser
+      Template.Render
+      Template.Type
       Utils.Git
       Utils.Logging
-      Utils.SitemapGenerator
   other-modules:
       Paths_gcwdr
   hs-source-dirs:

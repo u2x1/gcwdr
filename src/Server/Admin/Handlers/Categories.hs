@@ -9,9 +9,9 @@ import qualified Data.Text                 as T
 
 import           Web.Scotty                 ( ActionM, json )
 
-import           Data.Config.Type           ( Config(..) )
-import           Data.Template              ( getLeaf' )
-import           Data.Markdown              ( parsePost )
+import           Config.Type                ( Config(..) )
+import           Article.Query              ( getLeaf' )
+import           Article.Parse              ( parsePost )
 import           Server.Admin.Types
 import           Server.Admin.Handlers.Articles ( findMdFiles )
 

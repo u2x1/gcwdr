@@ -10,7 +10,7 @@ import           Data.Time                  ( getCurrentTime )
 import           Network.HTTP.Types.Status  ( status409 )
 import           Web.Scotty                 ( ActionM, json, text, status, finish )
 
-import           Entry.Read                 ( gnrtPublic )
+import           Site.Generate              ( gnrtPublic )
 import           Server.Admin.Types
 import           Utils.Logging              ( LogTag(Info), logWT )
 

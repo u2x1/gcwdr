@@ -1,4 +1,4 @@
-module Data.Markdown.Type where
+module Markdown.Type where
 
 import           Data.Text                      ( Text )
 

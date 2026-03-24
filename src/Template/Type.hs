@@ -1,4 +1,4 @@
-module Data.Template.Type where
+module Template.Type where
 
 import           Data.List                      ( intersperse )
 import           Data.Map.Lazy                  ( Map

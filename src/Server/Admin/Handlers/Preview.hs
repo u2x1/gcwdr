@@ -14,10 +14,12 @@ import           Network.HTTP.Types.Status  ( status500 )
 import           Web.Scotty                 ( ActionM, jsonData, html, text
                                             , status, setHeader, finish )
 
-import           Data.Config.Type           ( Config(..) )
-import           Data.Markdown              ( parsePost )
-import           Data.Template              ( convertTP, addGlb )
-import           Entry.Read                 ( getGlbRes, getAllFiles, getLayoutFile )
+import           Config.Type                ( Config(..) )
+import           Article.Parse              ( parsePost )
+import           Template.Render            ( convertTP )
+import           Article.Transform          ( addGlb )
+import           Site.FileUtils             ( getGlbRes, getAllFiles )
+import           Site.Generate              ( getLayoutFile )
 import           Server.Admin.Types
 
 -- | POST /admin/api/preview — full themed HTML preview

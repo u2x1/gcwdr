@@ -1,11 +1,11 @@
-module Module.Encrypt where
+module Article.Encrypt where
 
 import           Data.Char                      ( chr
                                                 , ord
                                                 )
 import           Data.Map                       ( update )
-import           Data.Template                  ( getLeaf' )
-import           Data.Template.Type             ( ObjectTree(ObjLeaf, ObjNode) )
+import           Article.Query                  ( getLeaf' )
+import           Template.Type                  ( ObjectTree(ObjLeaf, ObjNode) )
 import           Data.Text                     as T
                                                 ( Text )
 import           Data.Text.Lazy                as TL

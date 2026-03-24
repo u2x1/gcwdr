@@ -1,85 +1,21 @@
-module Data.Markdown where
+module Markdown.Render where
 
-import           Control.Applicative            ( many, some )
-import           Data.Attoparsec.Text           ( Parser
-                                                , char
-                                                , isEndOfLine
-                                                , many'
-                                                , manyTill
+import           Data.Attoparsec.Text           ( many'
                                                 , parseOnly
-                                                , satisfy
-                                                , string
-                                                , takeText
-                                                , takeTill
                                                 )
 import           Data.Either                    ( fromRight
                                                 , lefts
                                                 , rights
                                                 )
 import           Data.List                      ( intersperse )
-import           Data.List.Extra               as LE
-                                                ( dropWhileEnd
-                                                , init
-                                                )
-import           Data.Map.Lazy                 as M
-                                                ( (!?)
-                                                , Map
-                                                , fromList
-                                                , insert
-                                                )
-import           Data.Maybe                     ( isJust )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
-import           Data.Text.IO                  as TL
-                                                ( readFile )
 
-import           Data.Markdown.Parser           ( mdElem )
-import           Data.Markdown.Type             ( MDElem(..) )
-import           Data.Template.Type             ( ObjectTree(ObjLeaf, ObjNode)
-                                                , ToObjectTree(..)
-                                                )
+import           Markdown.Parser                ( mdElem )
+import           Markdown.Type                  ( MDElem(..) )
 
 markdown2Html :: Text -> Text
 markdown2Html = mdElems2Html . text2MDElems
-
-parsePost :: FilePath -> IO (Maybe ObjectTree)
-parsePost path = do
-  s <- TL.readFile path
-  case toObjectTree <$> parseOnly post s of
-    Right (ObjNode x) -> do
-      let relPath = T.toLower
-            (snd $ T.breakOnEnd "content/" $ T.pack $ LE.init $ dropWhileEnd
-              (/= '.')
-              path
-            )
-      pure $ Just (ObjNode (M.insert "relLink" (ObjLeaf ("/" <> relPath <> "/")) x))
-    _ -> pure Nothing
-
-post :: Parser Post
-post = do
-  meta'       <- metaData
-  postMDElems <- text2MDElems <$> takeText
-  let content = mdElems2Html postMDElems
-      outline = getOutline postMDElems
-      meta = insert' "outline" outline $ if isJust (meta' !? "template")
-        then meta'
-        else M.insert "template" (ObjLeaf "post") meta'  -- default template to "post"
-  return $ Post meta content
- where
-  insert' _   ""           = id
-  insert' key txt = M.insert key (ObjLeaf txt)
-
-metaData :: Parser MetaData
-metaData = do
-  _   <- many (string "---") <* some (satisfy isEndOfLine)
-  els <- manyTill el (string "---")
-  _   <- many (satisfy isEndOfLine)
-  return (ObjLeaf <$> fromList els)
- where
-  el = do
-    obj  <- takeTill (== ':') <* char ':' <* many (char ' ')
-    text <- takeTill isEndOfLine <* (many (satisfy isEndOfLine))
-    return (obj, text)
 
 text2MDElems :: Text -> [MDElem]
 text2MDElems text =
@@ -97,7 +33,7 @@ text2MDElems text =
     idHdr i ((Header a b _):xs) = Header a b i : idHdr  (i + 1) xs
     idHdr i (x:xs) = x : idHdr i xs
     idHdr _ [] = []
- 
+
 
 mdElems2Html :: [MDElem] -> Text
 mdElems2Html = mconcat . fmap mdElem2Html
@@ -233,13 +169,3 @@ getOutline elems = go [] headers
           <> suffix
           <> go newDepth xs
   go _ _ = ""
-
-
-type MetaData = Map Text ObjectTree
-
-data Post = Post MetaData Text
-  deriving Show
-
-instance ToObjectTree Post where
-  toObjectTree (Post meta content) =
-    ObjNode (M.insert "content" (ObjLeaf content) meta)

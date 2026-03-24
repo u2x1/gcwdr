@@ -1,4 +1,4 @@
-module Utils.SitemapGenerator where
+module Site.Sitemap where
 
 import           Data.Maybe                     ( catMaybes )
 import           Data.Text                      ( Text
@@ -9,11 +9,11 @@ import           Data.Time                      ( defaultTimeLocale
                                                 , getCurrentTime
                                                 )
 
-import           Data.Template                  ( getDate
+import           Article.Query                  ( getDate
                                                 , getLeaf'
                                                 , getNode
                                                 )
-import           Data.Template.Type             ( ObjectTree )
+import           Template.Type                  ( ObjectTree )
 
 packSitemap :: Text -> [URLInfo] -> Text
 packSitemap site infos =

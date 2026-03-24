@@ -1,4 +1,4 @@
-module Data.Markdown.Parser where
+module Markdown.Parser where
 
 import           Control.Applicative            ( Alternative((<|>), many, some)
                                                 )
@@ -32,7 +32,7 @@ import           Data.Text                     as T
                                                 , unlines
                                                 )
 
-import           Data.Markdown.Type             ( MDElem
+import           Markdown.Type                  ( MDElem
                                                   ( Blockquotes
                                                   , Bold
                                                   , LatexInline
@@ -60,7 +60,6 @@ import           Data.Markdown.Type             ( MDElem
 import           Prelude                 hiding ( takeWhile )
 
 -- | Post staff
-
 
 
 

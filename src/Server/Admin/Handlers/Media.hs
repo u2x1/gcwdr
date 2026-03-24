@@ -20,7 +20,7 @@ import           System.Directory           ( listDirectory, doesFileExist
                                             , canonicalizePath, getFileSize )
 import           System.FilePath            ( (</>) , takeFileName, takeExtension )
 
-import           Data.Config.Type           ( Config(..) )
+import           Config.Type                 ( Config(..) )
 import           Server.Admin.Types
 
 -- | Static file root = articleDir/static

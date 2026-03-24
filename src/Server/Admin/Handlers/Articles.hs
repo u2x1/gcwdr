@@ -15,10 +15,10 @@ import           Network.HTTP.Types.Status  ( status404, status409 )
 import           Web.Scotty                 ( ActionM, json, jsonData, text
                                             , queryParam, status, finish )
 
-import           Data.Config.Type           ( Config(..) )
-import           Data.Template              ( getLeaf' )
-import           Data.Template.Type         ( ObjectTree(..) )
-import           Data.Markdown              ( parsePost )
+import           Config.Type                ( Config(..) )
+import           Article.Query              ( getLeaf' )
+import           Template.Type              ( ObjectTree(..) )
+import           Article.Parse              ( parsePost )
 import           Server.Admin.Types
 
 -- | Recursively find all .md files under a directory

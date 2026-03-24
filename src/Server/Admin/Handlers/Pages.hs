@@ -12,8 +12,8 @@ import           Network.HTTP.Types.Status  ( status500 )
 import           Web.Scotty                 ( ActionM, html, text, status
                                             , queryParam, queryParamMaybe, setHeader )
 
-import           Data.Config.Type           ( Config(..) )
-import           Data.Template.Type         ( ObjectTree(..) )
+import           Config.Type                 ( Config(..) )
+import           Template.Type               ( ObjectTree(..) )
 import           Server.Admin.Types
 import           Server.Admin.Templates     ( renderAdminTemplate )
 import           Server.Admin.Handlers.Articles ( findMdFiles )
