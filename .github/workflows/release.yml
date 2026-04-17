@@ -56,8 +56,9 @@ jobs:
       - if: matrix.os != 'windows-latest'
         name: Set Unix binary path name
         run: |
-          mv ./dist/gcwdr-exe ./dist/gcwdr-${{ runner.os }}
-          echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}" >> $GITHUB_ENV
+          OS=$(echo "${{ runner.os }}" | tr '[:upper:]' '[:lower:]')
+          mv ./dist/gcwdr-exe ./dist/gcwdr-${OS}
+          echo "BINARY_PATH=./dist/gcwdr-${OS}" >> $GITHUB_ENV
 
       - name: Compress binary
         uses: svenstaro/upx-action@v2
