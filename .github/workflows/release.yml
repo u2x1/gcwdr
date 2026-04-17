@@ -50,14 +50,14 @@ jobs:
         name: Set Windows binary path name
         run: |
           chcp 65001
-          mv ./dist/gcwdr-exe.exe ./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}.exe
-          echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}.exe" >> $env:GITHUB_ENV
+          mv ./dist/gcwdr-exe.exe ./dist/gcwdr-windows.exe
+          echo "BINARY_PATH=./dist/gcwdr-windows.exe" >> $env:GITHUB_ENV
 
       - if: matrix.os != 'windows-latest'
         name: Set Unix binary path name
         run: |
-          mv ./dist/gcwdr-exe ./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}
-          echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}-ghc-${{ matrix.ghc }}" >> $GITHUB_ENV
+          mv ./dist/gcwdr-exe ./dist/gcwdr-${{ runner.os }}
+          echo "BINARY_PATH=./dist/gcwdr-${{ runner.os }}" >> $GITHUB_ENV
 
       - name: Compress binary
         uses: svenstaro/upx-action@v2
