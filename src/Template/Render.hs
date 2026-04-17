@@ -27,15 +27,15 @@ import           Article.Query                  ( getNode
                                                 , getLeaf'
                                                 )
 
-convertTP :: ObjectTree -> Text -> Either [String] Text
+convertTP :: ObjectTree -> Text -> Either String Text
 convertTP objTree s = case parseOnly (many' stmt) (s <> "\n") of
   Right xs -> concatAndInit $ convertTP' objTree <$> xs
-  _        -> Left ["failed to parse statements"]
+  _        -> Left "failed to parse statements"
 
-concatAndInit :: [Either String Text] -> Either [String] Text
+concatAndInit :: [Either String Text] -> Either String Text
 concatAndInit x = if Prelude.null $ lefts x
   then Right $ concatAndInit' (rights x)
-  else Left $ lefts x
+  else Left $ unlines $ lefts x
 
 concatAndInit' :: [Text] -> Text
 concatAndInit' x | mconcat x == ""            = mconcat x
@@ -56,7 +56,7 @@ convertPartial objs (PartialStmt partPath) =
   case getNode "global" objs >>= getNode "partials" >>= getLeaf' partPath of
     Just partFile -> case convertTP objs partFile of
       Right x   -> Right x
-      Left  err -> Left $ "converting partial: " <> unlines err
+      Left  err -> Left $ "converting partial: " <> err
     _ ->
       Left $ "partial file " <> show partPath <> " not found in global resource"
 convertPartial _ s = Left ("unexpected statement: " <> (show s))

@@ -290,6 +290,7 @@ footnoteRef = do
   returnNote id' =
     [PlainText "  ", Link [PlainText "↩"] ("#fnref:" <> id') Nothing]
 
+  addSign [] id' = [Paragrah (returnNote id')]
   addSign xs id' = init xs <> case Prelude.last xs of
     Paragrah x -> [Paragrah (x <> returnNote id')]
     x          -> x : returnNote id'

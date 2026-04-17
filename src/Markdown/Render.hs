@@ -3,8 +3,7 @@ module Markdown.Render where
 import           Data.Attoparsec.Text           ( many'
                                                 , parseOnly
                                                 )
-import           Data.Either                    ( fromRight
-                                                , lefts
+import           Data.Either                    ( lefts
                                                 , rights
                                                 )
 import           Data.List                      ( intersperse )
@@ -21,7 +20,9 @@ text2MDElems :: Text -> [MDElem]
 text2MDElems text =
   idHdr 0 . moveFn2Bottom $ rawMdElem
   where
-    rawMdElem = fromRight [] $ parseOnly (many' mdElem) (text <> "\n\n")
+    rawMdElem = case parseOnly (many' mdElem) (text <> "\n\n") of
+      Right xs -> xs
+      Left  err -> [PlainText $ T.pack $ "Markdown parse error: " <> err]
     moveFn2Bottom xs =
       let fns = map
             (\a ->
@@ -76,7 +77,10 @@ mdElem2Html (FootnoteRefs xs) =
     $ ("<hr/>" <>)
     $ tag'' "ol"
     $ mdElems2Html xs
-mdElem2Html (RawHtmlTag name props content) = tag (name <> " " <> props) content
+mdElem2Html (RawHtmlTag name props content) = rawTag name props content
+
+rawTag :: Text -> Text -> Text -> Text
+rawTag name props content = mconcat ["<", name, " ", props, ">", content, "</", name, ">"]
 
 tag :: Text -> Text -> Text
 tag name x = mconcat ["<", name, ">", x, "</", name, ">"]

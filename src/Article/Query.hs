@@ -10,7 +10,7 @@ import           Data.Text                     as T
                                                 )
 import           Data.Time                      ( UTCTime
                                                 , defaultTimeLocale
-                                                , parseTimeOrError
+                                                , parseTimeM
                                                 )
 
 import           Template.Type                  ( ObjectTree(..) )
@@ -39,10 +39,8 @@ getLeaf' key obj = case getLeaf key obj of
 
 getDate :: ObjectTree -> Maybe UTCTime
 getDate obj =
-  (\x ->
-      parseTimeOrError True defaultTimeLocale "%Y-%-m-%-d" (T.unpack x) :: UTCTime
-    )
-    <$> (getLeaf' "date" obj)
+  getLeaf' "date" obj >>= \x ->
+    parseTimeM True defaultTimeLocale "%Y-%-m-%-d" (T.unpack x)
 
 getCategory :: ObjectTree -> Maybe Text
 getCategory = getLeaf' "category"

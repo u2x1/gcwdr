@@ -24,6 +24,7 @@ import           Numeric                    ( showHex )
 -- ---------------------------------------------------------------------------
 
 import qualified Data.ByteString           as BS
+import           Data.Array                  ( Array, listArray, (!) )
 import           Data.Word                  ( Word8, Word32, Word64 )
 import           Data.Bits
 
@@ -77,10 +78,13 @@ blockToWords :: BS.ByteString -> [Word32]
 blockToWords bs = [ bytesToWord32 (BS.unpack $ BS.take 4 $ BS.drop (i*4) bs) | i <- [0..15] ]
 
 messageSchedule :: [Word32] -> [Word32]
-messageSchedule ws = ws ++ [ w i | i <- [16..63] ]
+messageSchedule ws = [ w i | i <- [0..63] ]
   where
-    w i = sig1 (ws' !! (i-2)) + (ws' !! (i-7)) + sig0 (ws' !! (i-15)) + (ws' !! (i-16))
-    ws' = ws ++ [ w i | i <- [16..63] ]
+    wsArr :: Array Int Word32
+    wsArr = listArray (0, 63) [ w i | i <- [0..63] ]
+    w i
+      | i < 16    = ws !! i
+      | otherwise = sig1 (wsArr ! (i-2)) + (wsArr ! (i-7)) + sig0 (wsArr ! (i-15)) + (wsArr ! (i-16))
     sig0 x = rotateR x 7 `xor` rotateR x 18 `xor` shiftR x 3
     sig1 x = rotateR x 17 `xor` rotateR x 19 `xor` shiftR x 10
 

@@ -4,6 +4,7 @@ import           Data.Time                      ( defaultTimeLocale
                                                 , formatTime
                                                 , getCurrentTime
                                                 )
+import           System.Exit                    ( exitFailure )
 import           System.IO                      ( hFlush
                                                 , stdout
                                                 )
@@ -30,4 +31,4 @@ logErr :: String -> String -> IO ()
 logErr msg errText = logWT Error (msg ++ ": " ++ errText)
 
 logErrAndTerminate :: String -> String -> IO a
-logErrAndTerminate msg err = logErr msg err >> error "fatal error"
+logErrAndTerminate msg err = logErr msg err >> exitFailure

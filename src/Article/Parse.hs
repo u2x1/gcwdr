@@ -36,7 +36,7 @@ import           Template.Type                  ( ObjectTree(ObjLeaf, ObjNode)
                                                 , ToObjectTree(..)
                                                 )
 
-parsePost :: FilePath -> IO (Maybe ObjectTree)
+parsePost :: FilePath -> IO (Either String ObjectTree)
 parsePost path = do
   s <- TL.readFile path
   case toObjectTree <$> parseOnly post s of
@@ -46,8 +46,9 @@ parsePost path = do
               (/= '.')
               path
             )
-      pure $ Just (ObjNode (M.insert "relLink" (ObjLeaf ("/" <> relPath <> "/")) x))
-    _ -> pure Nothing
+      pure $ Right (ObjNode (M.insert "relLink" (ObjLeaf ("/" <> relPath <> "/")) x))
+    Right _ -> pure $ Left $ "parsed article from " <> path <> " is not an ObjNode"
+    Left err -> pure $ Left $ "failed to parse article " <> path <> ": " <> err
 
 post :: Parser Post
 post = do

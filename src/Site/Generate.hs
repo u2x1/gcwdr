@@ -1,5 +1,7 @@
 module Site.Generate where
 
+import           Control.Monad                  ( unless )
+import           Data.Either                    ( partitionEithers )
 import           Data.Foldable                  ( traverse_ )
 import           Data.List.Extra                ( isPrefixOf
                                                 , isSuffixOf
@@ -45,7 +47,7 @@ import           Site.FileUtils                 ( getAllFiles
                                                 , removeDirContent
                                                 )
 import           Site.Sitemap                   ( getSitemap )
-import           Utils.Logging                  ( LogTag(Info)
+import           Utils.Logging                  ( LogTag(Info, Warning)
                                                 , logErrAndTerminate
                                                 , logWT
                                                 )
@@ -69,7 +71,11 @@ gnrtPublic cfg = do
 
   glbRes   <- getGlbRes themePath themeRes
 
-  let parseObj x = catMaybes <$> traverse parsePost x
+  let parseObj x = do
+        results <- traverse parsePost x
+        let (errs, objs) = partitionEithers results
+        unless (null errs) $ logWT Warning $ "parse errors:\n" <> unlines errs
+        pure objs
   postObjs <- sortOn (Down . getDate) <$> parseObj posts
   diaryObjs<- sortOn (Down . getDate) <$> parseObj diary
   writeupObjs <- sortOn (Down . getDate) <$> parseObj writeup
@@ -144,8 +150,8 @@ gnrtPublic cfg = do
   T.writeFile (outputDir cfg </> "writeup/index.html") writeupHtml  -- Index
 
 
-getFromTP :: String -> Either [String] a -> IO a
-getFromTP obj (Left  x) = logErrAndTerminate ("parsing " <> obj) (unlines x)
+getFromTP :: String -> Either String a -> IO a
+getFromTP obj (Left  x) = logErrAndTerminate ("parsing " <> obj) x
 getFromTP _   (Right x) = pure x
 
 getLayoutFile :: FilePath -> ObjectTree -> FilePath

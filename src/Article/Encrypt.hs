@@ -30,4 +30,4 @@ advance passwd origin = toStrict $ pack $ fmap (uncurry charPlus) s
   where s = TL.zip (mconcat . repeat $ fromStrict passwd) (fromStrict origin)
 
 charPlus :: Char -> Char -> Char
-charPlus a b = chr $ ord a + ord b
+charPlus a b = chr $ (ord a + ord b) `mod` 0x10FFFF

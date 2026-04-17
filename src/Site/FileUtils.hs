@@ -65,7 +65,7 @@ getAllFiles :: FilePath -> IO [FilePath]
 getAllFiles root' = do
   -- Prevent it from walking into ".git", ".stack-work" dirs
   contents <- filter (not . isPrefixOf ".") <$> listDirectory root'
-  let root         = if last root' == '/' then root' else root' <> "/"
+  let root         = if null root' || last root' == '/' then root' else root' <> "/"
       filesAndDirs = (root </>) <$> contents
 
   dirs     <- filterM doesDirectoryExist filesAndDirs

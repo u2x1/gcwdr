@@ -47,15 +47,15 @@ previewArticle env = do
 
     mObj <- parsePost tmpFile
     case mObj of
-      Nothing -> pure $ Left ("Failed to parse article content" :: T.Text)
-      Just obj -> do
+      Left err -> pure $ Left $ "Failed to parse article: " <> T.pack err
+      Right obj -> do
         let fullTree = addGlb glbRes obj
             -- getLayoutFile expects the full tree (with "this" wrapper)
             layoutFile = getLayoutFile themePath fullTree
         template <- TIO.readFile layoutFile
         case convertTP fullTree template of
           Right htmlContent -> pure $ Right htmlContent
-          Left errs -> pure $ Left $ "Template error: " <> T.pack (unlines errs)
+          Left errs -> pure $ Left $ "Template error: " <> T.pack errs
 
   case result :: Either SomeException (Either T.Text T.Text) of
     Left ex -> do

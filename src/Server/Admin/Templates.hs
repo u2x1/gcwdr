@@ -17,7 +17,7 @@ renderAdminTemplate
   :: Config
   -> Text              -- ^ Template name (e.g., "dashboard")
   -> M.Map Text ObjectTree  -- ^ Template variables
-  -> IO (Either [String] Text)
+  -> IO (Either String Text)
 renderAdminTemplate cfg templateName vars = do
   let adminDir = themeDir cfg </> "layout/admin"
   -- Read page template

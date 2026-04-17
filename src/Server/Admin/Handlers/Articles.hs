@@ -53,10 +53,10 @@ listArticles env = do
   json [ m | Just m <- metas ]
   where
     parseMeta path = do
-      mObj <- parsePost path
-      case mObj of
-        Just obj -> pure $ Just $ extractMeta path obj
-        Nothing  -> pure $ Just $ ArticleMeta path "" "" "" "post"
+      result <- parsePost path
+      pure $ case result of
+        Right obj -> Just $ extractMeta path obj
+        Left _    -> Just $ ArticleMeta path "" "" "" "post"
 
 -- | GET /admin/api/articles/get?path=:path — get full article
 getArticle :: AdminEnv -> ActionM ()
@@ -68,10 +68,10 @@ getArticle _env = do
     text "Article not found"
     finish
   rawContent <- liftIO $ TIO.readFile path
-  mObj <- liftIO $ parsePost path
-  let meta = case mObj of
-        Just obj -> extractMeta path obj
-        Nothing  -> ArticleMeta path "" "" "" "post"
+  result <- liftIO $ parsePost path
+  let meta = case result of
+        Right obj -> extractMeta path obj
+        Left _    -> ArticleMeta path "" "" "" "post"
   json $ ArticleFull meta rawContent
 
 -- | POST /admin/api/articles — create new article

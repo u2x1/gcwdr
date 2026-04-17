@@ -34,9 +34,8 @@ info2xml site URLInfo { loc = l, lastmod = m, priority = p } =
     <> m
     <> "</lastmod>\n\
   \      <priority>"
-    <> if p > 9
-         then "1"
-         else ("0." <> pack (show p)) <> "</priority>\n\
+    <> (if p > 9 then "1.0" else "0." <> pack (show p))
+    <> "</priority>\n\
   \   </url>\n"
 
 data URLInfo = URLInfo

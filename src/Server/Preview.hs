@@ -47,6 +47,8 @@ getFileType path = case takeWhileEnd (/= '.') path of
   "png"  -> "image/png"
   "gif"  -> "image/gif"
   "tiff" -> "image/tiff"
+  "svg"  -> "image/svg+xml"
+  "webp" -> "image/webp"
   "js"   -> "application/javascript"
   _      -> "text/plain"
  where

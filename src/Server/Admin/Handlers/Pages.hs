@@ -28,7 +28,7 @@ renderPage env templateName vars = do
       html $ TL.fromStrict htmlContent
     Left errs -> do
       status status500
-      text $ TL.fromStrict $ "Template error: " <> T.pack (unlines errs)
+      text $ TL.fromStrict $ "Template error: " <> T.pack errs
 
 -- | GET /admin/login
 loginPage :: AdminEnv -> ActionM ()

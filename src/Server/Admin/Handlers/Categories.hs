@@ -27,7 +27,7 @@ listCategories env = do
   json result
   where
     getCategory path = do
-      mObj <- parsePost path
-      pure $ case mObj of
-        Just obj -> fromMaybe "(uncategorized)" (getLeaf' "category" obj)
-        Nothing  -> "(uncategorized)" :: T.Text
+      result <- parsePost path
+      pure $ case result of
+        Right obj -> fromMaybe "(uncategorized)" (getLeaf' "category" obj)
+        Left _    -> "(uncategorized)" :: T.Text
