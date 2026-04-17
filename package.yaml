@@ -1,5 +1,5 @@
 name:                gcwdr
-version:             0.1.0.0
+version:             0.2.0.0
 github:              "u2x1/gcwdr"
 license:             BSD3
 author:              "u2x1"
@@ -18,6 +18,7 @@ default-extensions:
 
 dependencies:
 - base >= 4.18 && < 5
+- array
 - attoparsec
 - bytestring
 - text
@@ -26,6 +27,7 @@ dependencies:
 - directory
 - extra
 - network
+- optparse-applicative
 - html-entities
 - stringsearch
 - process
