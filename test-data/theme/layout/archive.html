@@ -1,0 +1,17 @@
+[- partial header.html -]
+
+      <div class="post-list content">
+
+      <h3>Archive</h3>
+      [- foreach x in this.posts -]
+        <li>
+          <a href="[- x.relLink -]">[- x.title -]</a>
+          <span class="date"> - [- x.date -]</span>
+        </li>
+      [- end -]
+
+      </div>
+    </div>
+
+  </body>
+</html>

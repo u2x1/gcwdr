@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1a98d0a0604109b2346a5fce2296282e032199766288005ceea92e18694c7d03
+-- hash: e127ced051dc487cb8af3b73002aa7571b6b9bb8368e029d5c9048cd39b95cf3
 
 name:           gcwdr
 version:        0.2.1.0
@@ -34,6 +34,7 @@ library
       Config.Parse
       Config.ToObjectTree
       Config.Type
+      Markdown.Highlight
       Markdown.Parser
       Markdown.Render
       Markdown.Type
@@ -69,6 +70,7 @@ library
     , array
     , attoparsec
     , base >=4.18 && <5
+    , blaze-html
     , bytestring
     , containers
     , directory
@@ -82,6 +84,7 @@ library
     , process
     , random
     , scotty
+    , skylighting
     , stringsearch
     , text
     , time
@@ -101,6 +104,7 @@ executable gcwdr-exe
     , array
     , attoparsec
     , base >=4.18 && <5
+    , blaze-html
     , bytestring
     , containers
     , directory
@@ -115,6 +119,7 @@ executable gcwdr-exe
     , process
     , random
     , scotty
+    , skylighting
     , stringsearch
     , text
     , time
@@ -139,6 +144,7 @@ test-suite gcwdr-test
     , array
     , attoparsec
     , base >=4.18 && <5
+    , blaze-html
     , bytestring
     , containers
     , directory
@@ -155,6 +161,7 @@ test-suite gcwdr-test
     , process
     , random
     , scotty
+    , skylighting
     , stringsearch
     , text
     , time

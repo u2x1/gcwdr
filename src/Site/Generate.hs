@@ -19,8 +19,12 @@ import           Data.Text.IO                  as T
                                                 ( readFile
                                                 , writeFile
                                                 )
-import           System.Directory               ( createDirectoryIfMissing )
+import           System.Directory               ( createDirectoryIfMissing
+                                                , doesDirectoryExist
+                                                )
 import           System.FilePath                ( (</>) )
+import           System.FilePath                ( takeDirectory
+                                                )
 
 import           Article.Parse                  ( parsePost )
 import           Article.Query                  ( getCategory
@@ -37,7 +41,9 @@ import           Config.Type                    ( Config
                                                   , outputDir
                                                   , siteUrl
                                                   , themeDir
+                                                  , indexes
                                                   )
+                                                , IndexConfig(..)
                                                 )
 import           Template.Render                ( convertTP )
 import           Template.Type                  ( ObjectTree(..) )
@@ -60,12 +66,7 @@ gnrtPublic cfg = do
   articleRes <- getAllFiles atclPath
   themeRes   <- getAllFiles themePath
   let getMdRes path = (flip filter) articleRes
-        (\p -> (atclPath </> path) `isPrefixOf` p && ".md" `isSuffixOf` p)
-
-  let posts = getMdRes "post/"
-      pages = getMdRes "page/"
-      diary = getMdRes "diary/"
-      writeup = getMdRes "writeup/"
+        (\p -> (atclPath </> T.unpack path) `isPrefixOf` p && ".md" `isSuffixOf` p)
       cStatics = filter (isPrefixOf (atclPath </> "static/")) articleRes
       statics  = filter (isPrefixOf (themePath </> "static/")) themeRes
 
@@ -76,57 +77,35 @@ gnrtPublic cfg = do
         let (errs, objs) = partitionEithers results
         unless (null errs) $ logWT Warning $ "parse errors:\n" <> unlines errs
         pure objs
-  postObjs <- sortOn (Down . getDate) <$> parseObj posts
-  diaryObjs<- sortOn (Down . getDate) <$> parseObj diary
-  writeupObjs <- sortOn (Down . getDate) <$> parseObj writeup
-  pageObjs <- parseObj pages
 
+  -- Validate that configured sourceDirs exist
+  traverse_ (\idx -> do
+    let dir = atclPath </> T.unpack (idxSourceDir idx)
+    exist <- doesDirectoryExist dir
+    unless exist $ logErrAndTerminate ("index sourceDir") (dir <> " does not exist")
+    ) (indexes cfg)
 
-  --- Convert index.
-  let
-    cates =
-      (\x -> mconcat
-          [ M.singleton "cateName" (ObjLeaf x)
-          , M.singleton "posts"
-                (toNodeList (filter ((== Just x) . getCategory) postObjs))
-          ]
-        )
-        <$> catMaybes (nub $ getCategory <$> postObjs)
+  -- Parse articles from each index's sourceDir
+  idxObjsList <- traverse (\idx -> do
+    let srcFiles = getMdRes (idxSourceDir idx)
+    objs <- sortOn (Down . getDate) <$> parseObj srcFiles
+    pure (idx, objs)
+    ) (indexes cfg)
 
-    writeupcates =
-      (\x -> mconcat
-          [ M.singleton "cateName" (ObjLeaf x)
-          , M.singleton "posts"
-                (toNodeList (filter ((== Just x) . getCategory) writeupObjs))
-          ]
-        )
-        <$> catMaybes (nub $ getCategory <$> writeupObjs)
+  pageObjs <- parseObj (getMdRes "page/")
 
-  indexHtml <- do
-    let indexObjTree = addGlb glbRes $ ObjNode $ mconcat
-          [ M.singleton "posts" (toNodeList postObjs)
-          , M.singleton "categories" (ObjNodeList cates)
-          ]
-    let indexTP = convertTP indexObjTree
-          <$> T.readFile (themePath </> "layout/index.html")
-    getFromTP "index" =<< indexTP
-
-  diaryHtml <- do
-    let diaryObjTree = addGlb glbRes $ ObjNode $ mconcat
-          [ M.singleton "posts" (toNodeList diaryObjs)
-          ]
-    let diaryTP = convertTP diaryObjTree
-          <$> T.readFile (themePath </> "layout/diary-index.html")
-    getFromTP "diary-index" =<< diaryTP
-
-  writeupHtml <- do
-    let writeupObjTree = addGlb glbRes $ ObjNode $ mconcat
-          [ M.singleton "posts" (toNodeList writeupObjs)
-          , M.singleton "categories" (ObjNodeList writeupcates)
-          ]
-    let writeupTP = convertTP writeupObjTree
-          <$> T.readFile (themePath </> "layout/writeup-index.html")
-    getFromTP "writeup-index" =<< writeupTP
+  -- Build index object trees for rendering
+  let indexTrees = flip fmap idxObjsList $ \(idx, objs) ->
+        let cates = (\x -> mconcat
+                        [ M.singleton "cateName" (ObjLeaf x)
+                        , M.singleton "posts" (toNodeList (filter ((== Just x) . getCategory) objs))
+                        ]
+                      ) <$> catMaybes (nub $ getCategory <$> objs)
+            objTree = addGlb glbRes $ ObjNode $ mconcat
+                        [ M.singleton "posts" (toNodeList objs)
+                        , M.singleton "categories" (ObjNodeList cates)
+                        ]
+        in (idx, objTree)
 
   -- Remove out-dated public dir.
   _ <- removeDirContent (outputDir cfg)
@@ -136,18 +115,25 @@ gnrtPublic cfg = do
   copyFiles outputPath (themePath </> "static/") statics
   copyFiles outputPath (atclPath </> "static/")  cStatics
 
-  let articles = addGlb glbRes <$> runAtclModule (postObjs <> pageObjs <> diaryObjs <> writeupObjs)
-  -- Generate htmls.
-  
+  -- Generate index pages from config
+  traverse_ (\(idx, objTree) -> do
+    let tplPath = themePath </> "layout" </> T.unpack (idxTemplate idx)
+        outPath = outputDir cfg </> T.unpack (idxOutput idx)
+    logWT Info $ "generating index " <> T.unpack (idxOutput idx) <> " from " <> T.unpack (idxTemplate idx)
+    tpl <- T.readFile tplPath
+    html <- getFromTP (T.unpack $ idxTemplate idx) (convertTP objTree tpl)
+    createDirectoryIfMissing True (takeDirectory outPath)
+    T.writeFile outPath html
+    ) indexTrees
+
+  -- Generate article pages
+  let allIdxObjs = concatMap snd idxObjsList
+      articles = addGlb glbRes <$> runAtclModule (allIdxObjs <> pageObjs)
+
   gnrtSitemap outputPath (siteUrl cfg) $
-      addGlb glbRes <$> runAtclModule (postObjs <> writeupObjs)
-  
-  gnrtHtmls outputPath themePath articles          -- Posts and pages
-  T.writeFile (outputDir cfg </> "index.html") indexHtml  -- Index
-  createDirectoryIfMissing True (outputDir cfg </> "diary/")
-  T.writeFile (outputDir cfg </> "diary/index.html") diaryHtml  -- Index
-  createDirectoryIfMissing True (outputDir cfg </> "writeup/")
-  T.writeFile (outputDir cfg </> "writeup/index.html") writeupHtml  -- Index
+      addGlb glbRes <$> runAtclModule allIdxObjs
+
+  gnrtHtmls outputPath themePath articles
 
 
 getFromTP :: String -> Either String a -> IO a

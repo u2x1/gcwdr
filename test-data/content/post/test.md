@@ -72,6 +72,12 @@ Block code "fences"
 Sample text here...
 ```
 
+```cpp
+#include <cstdio>
+
+int main() { printf("hello world!"); return 0; }
+```
+
 ## Links
 
 [link text](http://dev.nodeca.com)

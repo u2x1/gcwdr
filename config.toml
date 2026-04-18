@@ -5,6 +5,17 @@ themeDir   = "test-data/theme/"
 outputDir  = "test-data/public/"
 localServerPort  = 4000
 
+[[index]]
+sourceDir = "post/"
+template  = "index.html"
+output    = "index.html"
+
+[[index]]
+sourceDir = "post/"
+template  = "archive.html"
+output    = "archive/index.html"
+
+
 [[menu]]
 name = "Index"
 loc  = "/"

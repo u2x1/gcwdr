@@ -5,19 +5,19 @@ import           Data.Attoparsec.Text           ( many'
                                                 )
 import           Markdown.Parser                ( mdElem )
 import           Markdown.Type
+import           Markdown.Highlight             ( highlightCode )
 import           Template.Parser                ( stmt )
 import           Template.Type                  ( Stmt(..) )
-import           Data.Text                      ( Text )
+import           Data.Text                      ( Text
+                                                , isInfixOf
+                                                )
 import           Prelude                 hiding ( unlines )
 import           Test.Hspec                     ( Spec
                                                 , describe
-                                                , hspec
                                                 , it
                                                 , shouldBe
+                                                , shouldSatisfy
                                                 )
-
-main :: IO ()
-main = hspec spec
 
 spec :: Spec
 spec = do
@@ -52,12 +52,26 @@ spec = do
       parseMD "$$"
         `shouldBe` rt [Paragrah [PlainText "$", PlainText "$"]]
     it "parses latex block" $ do
-      parseMD "haha$$formula$$haha"
-        `shouldBe` rt [Paragrah [PlainText "haha",LatexBlock "formula",PlainText "haha"]]
-      parseMD "$$formula$$"
-        `shouldBe` rt [LatexBlock "formula"]
-      parseMD "$$$$"
-        `shouldBe` rt [Paragrah [PlainText "$",PlainText "$",PlainText "$",PlainText "$"]]
+      parseMD "haha$$formula$$haha" `shouldBe` rt [Paragrah [PlainText "haha",LatexBlock "formula",PlainText "haha"]]
+      parseMD "$$formula$$" `shouldBe` rt [LatexBlock "formula"]
+      parseMD "$$$$" `shouldBe` rt [Paragrah [PlainText "$",PlainText "$",PlainText "$",PlainText "$"]]
+    it "parses code block without language" $ do
+      parseMD "```\nhello world\n```"
+        `shouldBe` rt [CodeBlock Nothing "hello world"]
+    it "parses code block with language" $ do
+      parseMD "```haskell\nmain = putStrLn \"hi\"\n```"
+        `shouldBe` rt [CodeBlock (Just "haskell") "main = putStrLn \"hi\""]
+
+  describe "Syntax highlighting" $ do
+    it "highlights haskell code" $ do
+      let result = highlightCode (Just "haskell") "main = putStrLn \"hi\""
+      result `shouldSatisfy` isInfixOf "sourceCode"
+    it "falls back for unknown language" $ do
+      let result = highlightCode (Just "nonexistent") "hello"
+      result `shouldSatisfy` isInfixOf "<pre><code>"
+    it "falls back for no language" $ do
+      let result = highlightCode Nothing "hello"
+      result `shouldSatisfy` isInfixOf "<pre><code>"
 
   describe "Template parsing stuff" $ do
     it "parses dot" $ do
@@ -75,7 +89,6 @@ spec = do
                                    (DotStmt ["this", "posts"])
                                    [DotStmt ["x", "title"]]
                      ]
-
     it "parses ifdef" $ do
       parseTP "[- ifdef this.posts -][- x.title -][- end -]"
         `shouldBe` rt [IfdefStmt (DotStmt ["this", "posts"]) [DotStmt ["x", "title"]] []]

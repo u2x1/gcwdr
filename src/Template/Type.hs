@@ -14,6 +14,7 @@ data Stmt = DotStmt [Text]
           | ForeachStmt Text Stmt [Stmt]
           | PartialStmt Text
           | IfdefStmt Stmt [Stmt] [Stmt]
+          | IfEqStmt Text Stmt [Stmt] [Stmt] Bool
           | Raw Text
   deriving (Show, Eq)
 

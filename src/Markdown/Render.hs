@@ -11,6 +11,7 @@ import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 
 import           Markdown.Parser                ( mdElem )
+import           Markdown.Highlight             ( highlightCode )
 import           Markdown.Type                  ( MDElem(..) )
 
 markdown2Html :: Text -> Text
@@ -65,7 +66,7 @@ mdElem2Html (Link text url title) =
 mdElem2Html (Image text url title) =
   propTag' "img" [("src", Just url), ("alt", Just text), ("title", title)]
 mdElem2Html (Code      x) = tag "code" $ escapeHTML x
-mdElem2Html (CodeBlock x) = tag' "pre" $ tag "code" $ escapeHTML x
+mdElem2Html (CodeBlock lang body) = highlightCode lang body
 mdElem2Html (Footnote x) =
   propTag "sup" [("id", Just ("fnref:" <> x))]
     $ propTag "a" [("href", Just ("#fn:" <> x))] x

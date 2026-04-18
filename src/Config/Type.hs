@@ -1,5 +1,6 @@
 module Config.Type where
 
+import           Data.Maybe                     ( fromMaybe )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 import           Toml.Schema                    ( FromValue(..)
@@ -16,12 +17,19 @@ data Config = Config
   , themeDir           :: FilePath
   , articleDir         :: FilePath
   , localServerPort    :: Int
+  , indexes            :: [IndexConfig]
   , adminPasswordHash  :: Maybe Text
   , adminPasswordSalt  :: Maybe Text
   , adminSessionTTL    :: Maybe Int     -- seconds, default 86400 (24h)
   , adminPort          :: Maybe Int     -- default 4001
   }
   deriving Show
+
+data IndexConfig = IndexConfig
+  { idxSourceDir  :: Text
+  , idxTemplate   :: Text
+  , idxOutput     :: Text
+  } deriving Show
 
 data Menu = Menu
   { menuName :: Text
@@ -35,6 +43,13 @@ data AdminConfig = AdminConfig
   , acSessionTTL   :: Maybe Int
   , acPort         :: Maybe Int
   } deriving Show
+
+instance FromValue IndexConfig where
+  fromValue = parseTableFromValue $
+    IndexConfig
+      <$> reqKey "sourceDir"
+      <*> reqKey "template"
+      <*> reqKey "output"
 
 instance FromValue AdminConfig where
   fromValue = parseTableFromValue $
@@ -53,9 +68,10 @@ instance FromValue Config where
     thmDir'     <- T.unpack <$> reqKey "themeDir"
     artDir'     <- T.unpack <$> reqKey "articleDir"
     srvPort'    <- reqKey "localServerPort"
+    idxs'       <- optKey "index"
     adminCfg    <- optKey "admin"
     pure $ Config
-      title' url' menu' outDir' thmDir' artDir' srvPort'
+      title' url' menu' outDir' thmDir' artDir' srvPort' (fromMaybe [] idxs')
       (adminCfg >>= acPasswordHash)
       (adminCfg >>= acPasswordSalt)
       (adminCfg >>= acSessionTTL)

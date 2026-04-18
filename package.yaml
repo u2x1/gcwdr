@@ -39,6 +39,8 @@ dependencies:
 - aeson
 - http-types
 - random
+- skylighting
+- blaze-html
 
 ghc-options:
 - -Wall

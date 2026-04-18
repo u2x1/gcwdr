@@ -1,0 +1,32 @@
+pre.sourceCode {
+  background-color: #f7f7f7;
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+code.sourceCode {
+  font-family: 'Source Code Pro', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+
+.sourceCode .kw  { color: #007020; font-weight: bold; }
+.sourceCode .dt  { color: #902000; }
+.sourceCode .st  { color: #4070a0; }
+.sourceCode .co  { color: #60a0b0; font-style: italic; }
+.sourceCode .cf  { color: #007020; font-weight: bold; }
+.sourceCode .fu  { color: #06287e; }
+.sourceCode .va  { color: #19177c; }
+.sourceCode .ot  { color: #007020; }
+.sourceCode .al  { color: #ff0000; font-weight: bold; }
+.sourceCode .bn  { color: #40a070; }
+.sourceCode .dv  { color: #40a070; }
+.sourceCode .fl  { color: #40a070; }
+.sourceCode .ch  { color: #4070a0; }
+.sourceCode .im  { color: #007020; }
+.sourceCode .pp  { color: #bc7a00; }
+.sourceCode .sc  { color: #4070a0; }
+.sourceCode .ss  { color: #bb6688; }
+.sourceCode .bu  { color: #007020; }
+.sourceCode .ex  { color: #666666; }
+.sourceCode .er  { color: #ff0000; font-weight: bold; }

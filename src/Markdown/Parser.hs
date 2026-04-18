@@ -6,8 +6,10 @@ import           Data.Attoparsec.Combinator     ( count
                                                 , endOfInput
                                                 , lookAhead
                                                 , many'
+                                                , many1
                                                 , manyTill
                                                 , manyTill'
+                                                , option
                                                 )
 import           Data.Attoparsec.Text          as APT
                                                 ( Parser
@@ -15,6 +17,7 @@ import           Data.Attoparsec.Text          as APT
                                                 , char
                                                 , inClass
                                                 , isEndOfLine
+                                                , notInClass
                                                 , parseOnly
                                                 , satisfy
                                                 , string
@@ -199,10 +202,12 @@ code = do
 
 codeBlock :: Parser MDElem
 codeBlock = do
-  _ <- string "```" <* many eol
-  CodeBlock
-    .   pack
-    <$> (manyTill anyChar (many eol >> many (char ' ') >> string "```") <* eol)
+  _    <- string "```"
+  lang <- option Nothing (Just . pack <$> many1 (satisfy (notInClass " `\n")))
+  _    <- many eol
+  body <- pack <$> manyTill anyChar (many eol >> many (char ' ') >> string "```")
+  _    <- eol
+  return (CodeBlock lang body)
 
 hrztRule :: Parser MDElem
 hrztRule = do

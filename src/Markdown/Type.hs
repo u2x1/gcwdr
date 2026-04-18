@@ -13,7 +13,7 @@ data MDElem = Header              Int Text Int -- The third Int is for href '#hd
             | BoldAndItalic       Text
             | Strikethrough       Text
             | Code                Text
-            | CodeBlock           Text
+            | CodeBlock           (Maybe Text) Text
             | ExpandBlock         Text [MDElem]
             | Link                [MDElem] Text (Maybe Text)
             | Image               Text Text (Maybe Text)
