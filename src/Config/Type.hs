@@ -29,6 +29,7 @@ data IndexConfig = IndexConfig
   { idxSourceDir  :: Text
   , idxTemplate   :: Text
   , idxOutput     :: Text
+  , idxSitemap    :: Bool
   } deriving Show
 
 data Menu = Menu
@@ -45,11 +46,12 @@ data AdminConfig = AdminConfig
   } deriving Show
 
 instance FromValue IndexConfig where
-  fromValue = parseTableFromValue $
-    IndexConfig
-      <$> reqKey "sourceDir"
-      <*> reqKey "template"
-      <*> reqKey "output"
+  fromValue = parseTableFromValue $ do
+    src  <- reqKey "sourceDir"
+    tpl  <- reqKey "template"
+    out  <- reqKey "output"
+    smap <- optKey "sitemap"
+    pure $ IndexConfig src tpl out (fromMaybe True smap)
 
 instance FromValue AdminConfig where
   fromValue = parseTableFromValue $

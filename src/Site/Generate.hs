@@ -130,8 +130,9 @@ gnrtPublic cfg = do
   let allIdxObjs = concatMap snd idxObjsList
       articles = addGlb glbRes <$> runAtclModule (allIdxObjs <> pageObjs)
 
+  let sitemapObjs = concatMap snd $ filter (idxSitemap . fst) idxObjsList
   gnrtSitemap outputPath (siteUrl cfg) $
-      addGlb glbRes <$> runAtclModule allIdxObjs
+      addGlb glbRes <$> runAtclModule sitemapObjs
 
   gnrtHtmls outputPath themePath articles
 

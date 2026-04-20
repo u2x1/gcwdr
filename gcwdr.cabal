@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e127ced051dc487cb8af3b73002aa7571b6b9bb8368e029d5c9048cd39b95cf3
+-- hash: ead957cae3c9522041885ee7797f2220464700e2437d4263ea7a821753167da0
 
 name:           gcwdr
-version:        0.2.1.0
+version:        0.3.0.0
 description:    Please see the README on GitHub at <https://github.com/u2x1/gcwdr#readme>
 homepage:       https://github.com/u2x1/gcwdr#readme
 bug-reports:    https://github.com/u2x1/gcwdr/issues
