@@ -86,3 +86,38 @@ h3 { font-size: 28px; line-height: 34px; margin-bottom: 8px; }
 h4 { font-size: 21px; line-height: 30px; margin-bottom: 4px; }
 h5 { font-size: 17px; line-height: 5px; }
 h6 { font-size: 14px; line-height: 0px; }
+
+/* Image with captions */
+figure {
+    margin: 1em 0;
+    padding: 0;
+    text-align: center;
+}
+
+figure img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border-radius: 4px;
+}
+
+figcaption {
+    margin-top: 0.5em;
+    font-size: 0.9em;
+    font-style: italic;
+    color: #666;
+    padding: 0 10px;
+}
+
+/* Mobile responsive */
+@media only screen and (max-width: 767px) {
+    figure {
+        margin: 0.8em 0;
+    }
+    
+    figcaption {
+        font-size: 0.85em;
+        padding: 0 5px;
+    }
+}

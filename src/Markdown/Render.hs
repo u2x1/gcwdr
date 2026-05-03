@@ -64,7 +64,13 @@ mdElem2Html (Strikethrough x)  = tag "s" x
 mdElem2Html (Link text url title) =
   propTag'' "a" [("href", Just url), ("title", title)] (mdElems2Html text)
 mdElem2Html (Image text url title) =
-  propTag' "img" [("src", Just url), ("alt", Just text), ("title", title)]
+  case title of
+    Just caption ->
+      tag'' "figure" $
+        propTag' "img" [("src", Just url), ("alt", Just text), ("title", Just caption)]
+        <> tag' "figcaption" caption
+    Nothing ->
+      propTag' "img" [("src", Just url), ("alt", Just text), ("title", Nothing)]
 mdElem2Html (Code      x) = tag "code" $ escapeHTML x
 mdElem2Html (CodeBlock lang body) = highlightCode lang body
 mdElem2Html (Footnote x) =
