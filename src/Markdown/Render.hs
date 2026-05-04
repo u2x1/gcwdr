@@ -67,10 +67,10 @@ mdElem2Html (Image text url title) =
   case title of
     Just caption ->
       tag'' "figure" $
-        propTag' "img" [("src", Just url), ("alt", Just text), ("title", Just caption)]
+        propTag' "img" [("src", Just url), ("alt", Just text), ("title", Just caption), ("loading", Just "lazy"), ("decoding", Just "async")]
         <> tag' "figcaption" caption
     Nothing ->
-      propTag' "img" [("src", Just url), ("alt", Just text), ("title", Nothing)]
+      propTag' "img" [("src", Just url), ("alt", Just text), ("title", Nothing), ("loading", Just "lazy"), ("decoding", Just "async")]
 mdElem2Html (Code      x) = tag "code" $ escapeHTML x
 mdElem2Html (CodeBlock lang body) = highlightCode lang body
 mdElem2Html (Footnote x) =
