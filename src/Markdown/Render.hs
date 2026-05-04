@@ -3,10 +3,9 @@ module Markdown.Render where
 import           Data.Attoparsec.Text           ( many'
                                                 , parseOnly
                                                 )
-import           Data.Either                    ( lefts
-                                                , rights
+import           Data.List                      ( intersperse
+                                                , nub
                                                 )
-import           Data.List                      ( intersperse )
 import           Data.Text                      ( Text )
 import qualified Data.Text                     as T
 
@@ -18,23 +17,71 @@ markdown2Html :: Text -> Text
 markdown2Html = mdElems2Html . text2MDElems
 
 text2MDElems :: Text -> [MDElem]
-text2MDElems text =
-  idHdr 0 . moveFn2Bottom $ rawMdElem
+text2MDElems text = idHdr 0 . reorderFootnotes $ rawMdElem
   where
     rawMdElem = case parseOnly (many' mdElem) (text <> "\n\n") of
-      Right xs -> xs
+      Right xs  -> xs
       Left  err -> [PlainText $ T.pack $ "Markdown parse error: " <> err]
-    moveFn2Bottom xs =
-      let fns = map
-            (\a ->
-              case a of
-                  FootnoteRef{} -> Left a
-                  _             -> Right a)
-            xs
-      in rights fns <> pure (FootnoteRefs $ lefts fns)
-    idHdr i ((Header a b _):xs) = Header a b i : idHdr  (i + 1) xs
+
+    reorderFootnotes xs = mdMap rename body <> [FootnoteRefs newRefs]
+      where
+        body     = filter (not . isRef) xs
+        refs     = filter isRef xs
+        refOrder = nub $ foldMap fnIds body
+        idx x    = T.pack . show $ elemIdx x refOrder
+        rename (Footnote x) = Footnote (idx x)
+        rename x            = x
+        newRefs  = [ FootnoteRef (idx i) (mdMap (fixBack i) c)
+                   | ident <- refOrder, FootnoteRef i c <- refs, i == ident ]
+        fixBack orig (Link t h title)
+          | h == "#fnref:" <> orig = Link t ("#fnref:" <> idx orig) title
+        fixBack _ x = x
+
+    isRef FootnoteRef{} = True
+    isRef _             = False
+
+    fnIds (Footnote x) = [x]
+    fnIds e = maybe [] (foldMap fnIds . fst) (withChildren e)
+
+    idHdr i ((Header a b _):xs) = Header a b i : idHdr (i + 1) xs
     idHdr i (x:xs) = x : idHdr i xs
     idHdr _ [] = []
+
+-- | Decompose a container node into (children, rebuild)
+--   Exhaustive match: adding a new MDElem constructor triggers a compile warning
+withChildren :: MDElem -> Maybe ([MDElem], [MDElem] -> MDElem)
+withChildren (Paragrah xs)      = Just (xs, Paragrah)
+withChildren (Blockquotes xs)   = Just (xs, Blockquotes)
+withChildren (OrderedList xs)   = Just (xs, OrderedList)
+withChildren (UnorderedList xs) = Just (xs, UnorderedList)
+withChildren (ListElem xs)      = Just (xs, ListElem)
+withChildren (ExpandBlock t xs) = Just (xs, ExpandBlock t)
+withChildren (Link xs u t)      = Just (xs, \cs -> Link cs u t)
+withChildren (FootnoteRef x xs) = Just (xs, FootnoteRef x)
+withChildren (FootnoteRefs xs)  = Just (xs, FootnoteRefs)
+withChildren (Header{})         = Nothing
+withChildren (PlainText _)      = Nothing
+withChildren (Italic _)         = Nothing
+withChildren (Bold _)           = Nothing
+withChildren (LatexInline _)    = Nothing
+withChildren (LatexBlock _)     = Nothing
+withChildren (BoldAndItalic _)  = Nothing
+withChildren (Strikethrough _)  = Nothing
+withChildren (Code _)           = Nothing
+withChildren (CodeBlock _ _)    = Nothing
+withChildren (Image{})          = Nothing
+withChildren (Footnote _)       = Nothing
+withChildren HorizontalRule     = Nothing
+withChildren (RawHtmlTag{})     = Nothing
+
+-- | Recursively map over every node in the tree
+mdMap :: (MDElem -> MDElem) -> [MDElem] -> [MDElem]
+mdMap f = map (f . go)
+  where go e = maybe e (\(cs, mk) -> mk (mdMap f cs)) (withChildren e)
+
+elemIdx :: Eq a => a -> [a] -> Int
+elemIdx x (y:ys) = if x == y then 1 else 1 + elemIdx x ys
+elemIdx _ []     = 0
 
 
 mdElems2Html :: [MDElem] -> Text
